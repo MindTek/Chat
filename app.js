@@ -133,7 +133,7 @@ myFirebaseManager.getAllMessages()
         console.log(error);
     });*/
 
-myFirebaseManager.getAllMessagesForChat("chatid0")
+myFirebaseManager.getAllMessages()
     .then(function (messages) {
         console.log(require('util').inspect(messages, false, null));
     })

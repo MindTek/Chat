@@ -33,7 +33,20 @@ var FirebaseManager = function () {
  * @return {Promise<admin.messaging.MessagingDevicesResponse>}
  */
 FirebaseManager.prototype.sendMessage = function (tokens, payload) {
-    return this.getFirebaseApp().messaging().sendToDevice(tokens, payload);
+
+    switch (status) {
+        case FirebaseManager.STATUS_CONNECTED:
+            return this.getFirebaseApp().messaging().sendToDevice(tokens, payload);
+            break;
+
+        case FirebaseManager.STATUS_ERROR:
+            throw this.getError();
+            break;
+
+        case FirebaseManager.STATUS_NOT_CONNECTED:
+            throw new Error("Firebase app not connected!");
+            break
+    }
 };
 
 /**
@@ -47,13 +60,25 @@ FirebaseManager.prototype.sendMessage = function (tokens, payload) {
 FirebaseManager.prototype.sendMessage = function (tokens,
                                                   notificationTitle, notificationBody, customData) {
 
-    return this.getFirebaseApp().messaging().sendToDevice(tokens, {
-        notification: {
-            title: notificationTitle,
-            body: notificationBody
-        },
-        data: customData
-    });
+    if (status === FirebaseManager.STATUS_CONNECTED) {
+
+        return this.getFirebaseApp().messaging().sendToDevice(tokens, {
+            notification: {
+                title: notificationTitle,
+                body: notificationBody
+            },
+            data: customData
+        });
+    } else {
+
+        var error = this.getError();
+        if (error) {
+            throw error;
+        } else {
+            this.error = new Error("Cannot send messages, the firebase app is not connected");
+            throw this.error;
+        }
+    }
 };
 
 /**
@@ -63,9 +88,20 @@ FirebaseManager.prototype.sendMessage = function (tokens,
  */
 FirebaseManager.prototype.saveChatMessage = function (newMessage) {
 
-    var messagesRef = this.getMessagesRef();
-    var chatRef = messagesRef.child(newMessage.chat_id);
-    return chatRef.push(newMessage);
+    if (status === FirebaseManager.STATUS_CONNECTED) {
+
+        var messagesRef = this.getMessagesRef();
+        var chatRef = messagesRef.child(newMessage.chat_id);
+        return chatRef.push(newMessage);
+    } else {
+
+        var error = this.getError();
+        if (error) {
+            throw error;
+        } else {
+            throw this.error
+        }
+    }
 };
 
 /**
@@ -88,7 +124,8 @@ FirebaseManager.prototype.getAllMessages = function () {
 
         messageRef.once("value")
             .then(function (snapshot) {
-                fulfill(Object.values(snapshot.val()));
+
+                fulfill(snapshot);
             })
             .catch(function (error) {
                 reject(error);

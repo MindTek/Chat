@@ -12,19 +12,15 @@ var FirebaseManager = function () {
 
     // Initialize firebase app
     try {
-
         connectToFirebase();
-        //connectToFirebaseDB();
         status = FirebaseManager.STATUS_CONNECTED;
     } catch (err) {
-
         error = err;
         status = FirebaseManager.STATUS_ERROR;
     }
 };
 
 
-// @@@@@ Exposed functions @@@@@
 /**
  * Send push notifications to all the given tokens with the given payload
  * @param tokens The tokens (array of strings or a single string) of the device to send the notification to
@@ -145,13 +141,28 @@ FirebaseManager.prototype.getAllMessagesForChat = function (chatId) {
 
         messageRef.child(chatId).once("value")
             .then(function (snapshot) {
-                fulfill(Object.values(snapshot.val()));
+                fulfill(snapshot.val());
             })
             .catch(function (error) {
                 reject(error);
             });
     });
 };
+
+FirebaseManager.prototype.getLastMessagesForChat = function (chatId) {
+    var messageRef = this.getMessagesRef();
+
+    return new Promise(function (fulfill, reject) {
+
+        messageRef.child(chatId).limitToLast(2).once("value")
+            .then(function (snapshot) {
+                fulfill(snapshot.val());
+            })
+            .catch(function (error) {
+                    reject(error);
+            });
+    });
+}
 
 /**
  * Get the last generated error
@@ -183,8 +194,6 @@ FirebaseManager.prototype.getMessagesRef = function () {
     return this.getFirebaseApp().database().ref("server/chat/messages");
 };
 
-
-// @@@@@ Internal functions @@@@@
 /**
  * This method builds a configuration and initialize the firebase application
  * @throws An error if some required firebase credentials are missing
@@ -257,13 +266,15 @@ var buildFirebaseConfigOrThrow = function () {
         // No missing params, return the firebase configuration
         return {
             credential: Firebase.credential.cert(serviceAccount),
-            databaseURL: "https://" + serviceAccount.project_id + ".firebaseio.com"
+            databaseURL: "https://" + serviceAccount.project_id + ".firebaseio.com",
+            databaseAuthVariableOverride: {
+                uid: "chat-service"
+            }
         };
     }
 };
 
 
-// @@@@@ Exposed static variables
 /**
  * This is a state representing that this manager instance has not been connected to firebase yet (Constructor)
  * @type {number}

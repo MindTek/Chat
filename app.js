@@ -1,18 +1,18 @@
 // Main application script
 const chatRouter = require('./routes');
-
 const express = require('express');
 const app = express();
+const promise = require('promise');
 
 // Get all environment constants
-var projectName = process.env.MM_PROJECT_NAME;
+/*var projectName = process.env.MM_PROJECT_NAME;
 var chatDBUrl = process.env.MM_CHAT_DB_URL;
 var chatDBUsername = process.env.MM_CHAT_DB_USERNAME;
 var chatDBPassword = process.env.MM_CHAT_DB_PASSWORD;
 
 var chatServerPort = process.env.MM_CHAT_SERVER_PORT;
 
-var development = process.env.MM_CHAT_DEVELOPMENT;
+var development = process.env.MM_CHAT_DEVELOPMENT;*/
 
 app.use(chatRouter);
 
@@ -38,7 +38,7 @@ var myFirebaseManager = new FirebaseManager();
 if (!myFirebaseManager.isConnected()) {
     console.log(myFirebaseManager.getError().message);
 } else {
-    console.log(myFirebaseManager.isConnected());
+    console.log("Firebase connection: " + myFirebaseManager.isConnected())
 }
 
 
@@ -55,58 +55,8 @@ if (!myFirebaseManager.isConnected()) {
         console.log(error);
     });*/
 
-/*myFirebaseManager.saveChatMessage({
-    _id: "messageid0",
-    text: "Message! " + Math.random(),
-    user_id: "userId0",
-    chat_id: "chatid0",
-    timestamp: "" + new Date()
-})
-    .then(function () {
-        console.log("Save OK!");
-    })
-    .catch(function (error) {
-        console.log(error);
-    });
-myFirebaseManager.saveChatMessage({
-    _id: "messageid1",
-    text: "Message! " + Math.random(),
-    user_id: "userId0",
-    chat_id: "chatid0",
-    timestamp: "" + new Date()
-})
-    .then(function () {
-        console.log("Save OK!");
-    })
-    .catch(function (error) {
-        console.log(error);
-    });
-myFirebaseManager.saveChatMessage({
-    _id: "messageid2",
-    text: "Message! " + Math.random(),
-    user_id: "userId0",
-    chat_id: "chatid0",
-    timestamp: "" + new Date()
-})
-    .then(function () {
-        console.log("Save OK!");
-    })
-    .catch(function (error) {
-        console.log(error);
-    });
-myFirebaseManager.saveChatMessage({
-    _id: "messageid3",
-    text: "Message! " + Math.random(),
-    user_id: "userId0",
-    chat_id: "chatid0",
-    timestamp: "" + new Date()
-})
-    .then(function () {
-        console.log("Save OK!");
-    })
-    .catch(function (error) {
-        console.log(error);
-    });
+
+// EXAMPLE OF FIREBASE MESSAGE STORING
 myFirebaseManager.saveChatMessage({
     _id: "messageid4",
     text: "Message! " + Math.random(),
@@ -115,28 +65,43 @@ myFirebaseManager.saveChatMessage({
     timestamp: "" + new Date()
 })
     .then(function () {
-        console.log("Save OK!");
-    })
-    .catch(function (error) {
-        console.log(error);
-    });*/
-
-
-
-
-/*
-myFirebaseManager.getAllMessages()
-    .then(function (messages) {
-        console.log(require('util').inspect(messages, false, null));
-    })
-    .catch(function (error) {
-        console.log(error);
-    });*/
-
-myFirebaseManager.getAllMessages()
-    .then(function (messages) {
-        console.log(require('util').inspect(messages, false, null));
+        console.log("Saved!");
+        var res = getLastMessagesForChat("chatid1");
     })
     .catch(function (error) {
         console.log(error);
     });
+
+function getMessages() {
+    myFirebaseManager.getAllMessages()
+    .then(function (messages) {
+        console.log(messages);
+    })
+    .catch(function (error) {
+        console.log(error);
+    });
+}
+
+function getAllMessagesForChat(chatId) {
+    myFirebaseManager.getAllMessagesForChat(chatId)
+        .then(function(messages) {
+            console.log(messages);
+        })
+        .catch(function(error){
+            console.log(error);
+        });
+}
+
+function getLastMessagesForChat(chatId) {
+    myFirebaseManager.getLastMessagesForChat(chatId)
+        .then(function(messages) {
+            console.log("HERE" + messages);
+            for (var i = 0, len = messages.length; i < len; i++) {
+                console.log(messages[i].valueOf());
+                console.log("\n");
+            }
+        })
+        .catch(function(error){
+            console.log(error);
+        });
+}

@@ -3,6 +3,8 @@
 This is a stand-alone module made by MindTek
 
 ### Setup
+- Login into Firebase and generate your private key for Admin SDK - NodeJS
+
 Add the following environment variables before running the module <br />
 
 MM_PROJECT_NAME <br />

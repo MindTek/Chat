@@ -20,7 +20,15 @@ var FirebaseManager = function () {
     }
 };
 
+/**
+ * @returns The already generated firebase config, may be undefined if FirebaseManager.prototype.buildFirebaseConfigOrThrow
+ * has not been called or has thrown an exception. (It's called by default in the constructor)
+ */
+FirebaseManager.prototype.getFirebaseConfig = function () {
+    return firebaseConfig;
+};
 
+// NOTIFICATIONS
 /**
  * Send push notifications to all the given tokens with the given payload
  * @param tokens The tokens (array of strings or a single string) of the device to send the notification to
@@ -77,11 +85,45 @@ FirebaseManager.prototype.sendMessage = function (tokens,
     }
 };
 
+// API
 /**
  *
  * @param newMessage The new message to be pushed inside the firebaseDB
  * @return Promise<void>
  */
+
+/**
+ * Create new message
+ */
+FirebaseManager.prototype.createChat = function (newChat) {
+    if (status === FirebaseManager.STATUS_CONNECTED) {
+
+        var chatRef = this.getChatsRef();
+        if (type === 1) {
+            return chatRef.child("chatId00").set({
+                group: true,
+                id: "chatid1",
+                img: "http://test@test.com"});
+        } else if (type === 0) {
+            return chatRef.child("chatId00").set({
+                group: true,
+                id: "chatid1",
+                img: "http://test@test.com"});
+        }
+
+        var chatRef = messagesRef.child(newMessage.chat_id);
+        return chatRef.push(newMessage);
+    } else {
+        var error = this.getError();
+        if (error) {
+            throw error;
+        } else {
+            throw this.error
+        }
+    }
+}
+
+
 FirebaseManager.prototype.saveChatMessage = function (newMessage) {
 
     if (status === FirebaseManager.STATUS_CONNECTED) {
@@ -100,13 +142,7 @@ FirebaseManager.prototype.saveChatMessage = function (newMessage) {
     }
 };
 
-/**
- * @returns The already generated firebase config, may be undefined if FirebaseManager.prototype.buildFirebaseConfigOrThrow
- * has not been called or has thrown an exception. (It's called by default in the constructor)
- */
-FirebaseManager.prototype.getFirebaseConfig = function () {
-    return firebaseConfig;
-};
+
 
 /**
  * @returns Promise<any> saved chats and messages
@@ -164,6 +200,7 @@ FirebaseManager.prototype.getLastMessagesForChat = function (chatId) {
     });
 }
 
+// FIREBASE MANAGEMENT
 /**
  * Get the last generated error
  * @returns The last generated error
@@ -190,8 +227,24 @@ FirebaseManager.prototype.getFirebaseApp = function () {
  * This is a utility method that returns the messages root reference
  * @returns {*|admin.database.Reference}
  */
+FirebaseManager.prototype.getChatsRef = function () {
+    return this.getFirebaseApp().database().ref("/chats/");
+};
+
+/**
+ * This is a utility method that returns the messages root reference
+ * @returns {*|admin.database.Reference}
+ */
 FirebaseManager.prototype.getMessagesRef = function () {
-    return this.getFirebaseApp().database().ref("server/chat/messages");
+    return this.getFirebaseApp().database().ref("/messages/");
+};
+
+/**
+ * This is a utility method that returns the messages root reference
+ * @returns {*|admin.database.Reference}
+ */
+FirebaseManager.prototype.getUsersRef = function () {
+    return this.getFirebaseApp().database().ref("/users/");
 };
 
 /**

@@ -86,33 +86,39 @@ FirebaseManager.prototype.sendMessage = function (tokens,
 };
 
 // API
-/**
- *
- * @param newMessage The new message to be pushed inside the firebaseDB
- * @return Promise<void>
- */
-
-/**
- * Create new message
- */
 FirebaseManager.prototype.createChat = function (newChat) {
     if (status === FirebaseManager.STATUS_CONNECTED) {
-
         var chatRef = this.getChatsRef();
-        if (type === 1) {
-            return chatRef.child("chatId00").set({
-                group: true,
-                id: "chatid1",
-                img: "http://test@test.com"});
-        } else if (type === 0) {
-            return chatRef.child("chatId00").set({
-                group: true,
-                id: "chatid1",
-                img: "http://test@test.com"});
+        return new Promise(function (resolve, reject) {
+            chatRef.child(newChat.id).set(newChat, function(error) {
+                if (error) {
+                    reject();
+                } else {
+                    resolve();
+                }
+            })
+        });
+    } else {
+        var error = this.getError();
+        if (error) {
+            throw error;
+        } else {
+            throw this.error
         }
+    }
+}
 
-        var chatRef = messagesRef.child(newMessage.chat_id);
-        return chatRef.push(newMessage);
+FirebaseManager.prototype.getAllMessages = function (chatId) {
+    if (status === FirebaseManager.STATUS_CONNECTED) {
+        var messageRef = this.getMessagesRef();
+
+        return new Promise(function (resolve, reject) {
+            messageRef.orderByChild('chat_id').equalTo(chatId).once('value', function(snapshot) {
+               resolve(snapshot.val());
+            }), function(error) {
+                reject();
+            }
+        });
     } else {
         var error = this.getError();
         if (error) {
@@ -140,29 +146,6 @@ FirebaseManager.prototype.saveChatMessage = function (newMessage) {
             throw this.error
         }
     }
-};
-
-
-
-/**
- * @returns Promise<any> saved chats and messages
- */
-FirebaseManager.prototype.getAllMessages = function () {
-
-    var messageRef = this.getMessagesRef();
-
-    // Create a new promise and return directly the values and not the firebase object
-    return new Promise(function (fulfill, reject) {
-
-        messageRef.once("value")
-            .then(function (snapshot) {
-
-                fulfill(snapshot);
-            })
-            .catch(function (error) {
-                reject(error);
-            });
-    });
 };
 
 /**

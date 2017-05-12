@@ -1,6 +1,6 @@
 // Main application script
-const chatRouter = require('./routes');
-const express = require('express');
+//const chatRouter = require('./routes');
+const express = require('express'), bodyParser = require('body-parser');
 const app = express();
 const promise = require('promise');
 
@@ -9,29 +9,67 @@ const promise = require('promise');
 var chatDBUrl = process.env.MM_CHAT_DB_URL;
 var chatDBUsername = process.env.MM_CHAT_DB_USERNAME;
 var chatDBPassword = process.env.MM_CHAT_DB_PASSWORD;
-
 var chatServerPort = process.env.MM_CHAT_SERVER_PORT;
-
 var development = process.env.MM_CHAT_DEVELOPMENT;*/
 
-app.use(chatRouter);
+// LOAD ROUTING
+app.use(bodyParser.json());
+//app.use(chatRouter);
 
-app.use(function (err, req, res, next) {
-
-    console.log("An error has occurred");
-
-    res.status(err.status || 500);
-    res.send({
-        error_msg: err.message || ("An error has occurred!\n" + err)
-    });
+app.listen(3000, function () {
+  console.log('Listening on port 3000...');
 });
 
-/*
- var server = app.listen(chatServerPort || 3000, function () {
- console.log("Express server listening on port", server.address().port);
- });
- */
+//API
+// Sample page
+app.get('/', function(req, res) {
+  res.send('Ciao Matteo! Benvenuto nel modulo di chat!');
+});
 
+// Chat creation (single or group)
+app.post('/api/chat', function(req, res) {
+    createChat(req.body)
+        .then(function(){
+            res.status(201).send('201');
+        })
+        .catch(function(){
+            res.status(400).send('400');
+        });
+});
+
+// modifica parametri chat 1-1 e 1-N - Qui verranno modificate tutte le opzioni della chat, ovvero l'aggiunta/rimozione di partecipanti*/
+app.put('/api/chat/:chatid', function(req,res) {
+
+});
+
+// Invio nuovo messaggio
+app.post('/api/chat/:chatid/message', function(req,res) {
+
+});
+
+// Abbandono di una chat da parte dell'utente corrente
+app.put('/api/chat/:id/:userid/leave', function(req,res) {
+
+});
+
+// Get chat list of current user
+app.get('/api/chat/all/user/:userid', function(req,res) {
+
+});
+
+// Get list of messages of a chat
+app.get('/api/chat/:chatid', function(req,res) {
+    getMessageList(req.params.chatid)
+        .then(function(messages){
+            res.status(201).send(messages);
+        })
+        .catch(function(){
+            res.status(404).send('404');
+        });
+});
+
+
+//FIREBASE MANAGER
 const FirebaseManager = require('./managers/firebase-manager');
 var myFirebaseManager = new FirebaseManager();
 
@@ -40,6 +78,9 @@ if (!myFirebaseManager.isConnected()) {
 } else {
     console.log("Firebase connection: " + myFirebaseManager.isConnected())
 }
+
+
+
 
 
 /*myFirebaseManager.sendMessage([
@@ -56,47 +97,31 @@ if (!myFirebaseManager.isConnected()) {
     });*/
 
 
-//API CALL
-
-/*POST /api/chat
-creazione chat 1-1 e 1-N*/
-
-/*PUT /api/chat/{chat-id}
-modifica parametri chat 1-1 e 1-N - Qui verranno modificate tutte le opzioni della chat, ovvero l'aggiunta/rimozione di partecipanti*/
-
-/*POST /api/chat/{chat-id}/message
-invio messaggio*/
-
-/*PUT /api/chat/{chat-id}/leave
-abbandono di una chat da parte dell'utente corrente*/
-
-/*DELETE /api/chat/{chat-id}
-cancellazione di una chat e forzatura dell'abbandono della stessa per tutti i suoi partecipanti*/
-
-/*GET /api/chat/mine/
-elenco di tutte le chat a cui appartiene l'utente corrente*/
-
-/*GET /api/chat/{chat-id}
-elenco di tutti i messaggi di una chat*/
 
 
-myFirebaseManager.createChat(1)
-    .then(function () {
-        console.log("Created!");
-    })
-    .catch(function (error) {
-        console.log(error);
-    });
 
 // PRIVATE FUNCTIONS
+function createChat(chat) {
+    return new Promise(function (resolve, reject) {
+        myFirebaseManager.createChat(chat)
+        .then(function () {
+            resolve();
+        })
+        .catch(function () {
+            reject();
+        });
+    });
+}
 
-function getMessages() {
-    myFirebaseManager.getAllMessages()
-    .then(function (messages) {
-        console.log(messages);
-    })
-    .catch(function (error) {
-        console.log(error);
+function getMessageList(chatId) {
+    return new Promise(function (resolve, reject) {
+        myFirebaseManager.getAllMessages(chatId)
+            .then(function (messages) {
+                resolve(messages);
+            })
+            .catch(function () {
+                reject();
+            });
     });
 }
 
@@ -123,6 +148,3 @@ function getLastMessagesForChat(chatId) {
             console.log(error);
         });
 }
-
-Chat.GROUP = 1;
-Chat.SINGLE = 0;

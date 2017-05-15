@@ -53,14 +53,27 @@ app.post('/api/chat/:chatid/message', function(req,res) {
     });
 });
 
-// Abbandono di una chat da parte dell'utente corrente
-app.put('/api/chat/:id/:userid/leave', function(req,res) {
-
+// Abbandono di una chat da parte dell'utente
+app.put('/api/chat/:chatid/:userid/leave', function(req,res) {
+    myFirebaseManager.removeUser(req.params.userid, req.params.chatid)
+        .then(function () {
+            res.status(201).send('201');
+        })
+        .catch(function () {
+            res.status(404).send('404');
+        });
 });
 
 // Get chat list of current user
 app.get('/api/chat/all/user/:userid', function(req,res) {
-
+    console.log(req.params.userid);
+    myFirebaseManager.getChats(req.params.userid)
+        .then(function (chats) {
+            res.status(201).send(chats);
+        })
+        .catch(function () {
+            res.status(404).send('404');
+        });
 });
 
 // Get list of messages of a chat
@@ -71,6 +84,17 @@ app.get('/api/chat/:chatid', function(req,res) {
         })
         .catch(function () {
             res.status(404).send('404');;
+        });
+});
+
+// Delete chat
+app.delete('/api/chat/:chatid', function (req,res) {
+    myFirebaseManager.deleteChat(req.params.chatid)
+        .then(function () {
+            res.status(201).send('201');
+        })
+        .catch(function () {
+            res.status(404).send('404');
         });
 });
 

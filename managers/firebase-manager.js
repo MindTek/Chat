@@ -9,7 +9,6 @@ var firebaseApp;
 var error;
 
 var FirebaseManager = function () {
-
     // Initialize firebase app
     try {
         connectToFirebase();
@@ -20,6 +19,15 @@ var FirebaseManager = function () {
     }
 };
 
+function throwError() {
+    var error = this.getError();
+    if (error) {
+        throw error;
+    } else {
+        throw this.error
+    }
+}
+
 /**
  * @returns The already generated firebase config, may be undefined if FirebaseManager.prototype.buildFirebaseConfigOrThrow
  * has not been called or has thrown an exception. (It's called by default in the constructor)
@@ -28,7 +36,7 @@ FirebaseManager.prototype.getFirebaseConfig = function () {
     return firebaseConfig;
 };
 
-// NOTIFICATIONS
+/* NOTIFICATIONS */
 /**
  * Send push notifications to all the given tokens with the given payload
  * @param tokens The tokens (array of strings or a single string) of the device to send the notification to
@@ -85,11 +93,16 @@ FirebaseManager.prototype.sendMessage = function (tokens,
     }
 };
 
-// API
+/* API */
+/**
+ * Create a new chat
+ * @param newChat
+ * @returns {*|Promise}
+ */
 FirebaseManager.prototype.createChat = function (newChat) {
     if (status === FirebaseManager.STATUS_CONNECTED) {
         var chatRef = this.getChatsRef();
-        return new Promise(function (resolve, reject) {
+        var p = new Promise(function (resolve, reject) {
             chatRef.child(newChat.id).set(newChat, function(error) {
                 if (error) {
                     reject();
@@ -98,53 +111,76 @@ FirebaseManager.prototype.createChat = function (newChat) {
                 }
             })
         });
+        return p;
     } else {
-        var error = this.getError();
-        if (error) {
-            throw error;
-        } else {
-            throw this.error
-        }
+        throwError.call(this)
     }
 }
 
+
+
+/**
+ * Get all messages of a specific chat
+ * @param chatId
+ * @returns {*|Promise}
+ */
 FirebaseManager.prototype.getAllMessages = function (chatId) {
     if (status === FirebaseManager.STATUS_CONNECTED) {
         var messageRef = this.getMessagesRef();
 
-        return new Promise(function (resolve, reject) {
+        var p = new Promise(function (resolve, reject) {
             messageRef.orderByChild('chat_id').equalTo(chatId).once('value', function(snapshot) {
                resolve(snapshot.val());
             }), function(error) {
                 reject();
             }
         });
+        return p;
     } else {
-        var error = this.getError();
-        if (error) {
-            throw error;
-        } else {
-            throw this.error
-        }
+        throwError.call(this);
     }
 }
 
+/**
+ * Update chat parameters. Used to add new members to the chat, plus to change detail info.
+ * @param chatId
+ * @returns {*|Promise}
+ */
+FirebaseManager.prototype.updateChat = function(chatId) {
+    if (status === FirebaseManager.STATUS_CONNECTED) {
+        var chatRef = this.getChatsRef();
+        var p = new Promise(function (resolve, reject) {
+            chatRef.child(newChat.id).set(newChat, function(error) {
+                if (error) {
+                    reject();
+                } else {
+                    resolve();
+                }
+            })
+        });
+        return p;
+    } else {
+        throwError.call(this);
+    }
+}
 
-FirebaseManager.prototype.saveChatMessage = function (newMessage) {
+FirebaseManager.prototype.saveMessage = function (newMessage) {
 
     if (status === FirebaseManager.STATUS_CONNECTED) {
-
-        var messagesRef = this.getMessagesRef();
-        var chatRef = messagesRef.child(newMessage.chat_id);
-        return chatRef.push(newMessage);
+        var messageRef = this.getMessagesRef();
+        var p = new Promise(function(resolve, reject) {
+            // NOTE: Here I am creating a new node and putting a value inside it
+            messageRef.push(newMessage, function (error) {
+                if (error) {
+                    reject(404);
+                } else {
+                    resolve(200);
+                }
+            });
+        });
+        return p;
     } else {
-
-        var error = this.getError();
-        if (error) {
-            throw error;
-        } else {
-            throw this.error
-        }
+        throwError.call(this);
     }
 };
 

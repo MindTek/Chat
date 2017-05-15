@@ -1,6 +1,7 @@
 // Main application script
 //const chatRouter = require('./routes');
 const express = require('express'), bodyParser = require('body-parser');
+const logger = require('winston');
 const app = express();
 const promise = require('promise');
 
@@ -12,12 +13,11 @@ var chatDBPassword = process.env.MM_CHAT_DB_PASSWORD;
 var chatServerPort = process.env.MM_CHAT_SERVER_PORT;
 var development = process.env.MM_CHAT_DEVELOPMENT;*/
 
-// LOAD ROUTING
+/* ROUTING AND LOGGING */
 app.use(bodyParser.json());
-//app.use(chatRouter);
 
 app.listen(3000, function () {
-  console.log('Listening on port 3000...');
+  logger.info('Listening on port 3000...');
 });
 
 //API
@@ -28,11 +28,11 @@ app.get('/', function(req, res) {
 
 // Chat creation (single or group)
 app.post('/api/chat', function(req, res) {
-    createChat(req.body)
-        .then(function(){
+    myFirebaseManager.createChat(req.body)
+        .then(function () {
             res.status(201).send('201');
         })
-        .catch(function(){
+        .catch(function () {
             res.status(400).send('400');
         });
 });
@@ -44,7 +44,13 @@ app.put('/api/chat/:chatid', function(req,res) {
 
 // Invio nuovo messaggio
 app.post('/api/chat/:chatid/message', function(req,res) {
-
+    myFirebaseManager.saveMessage(req.body)
+        .then(function(statusCode) {
+            res.status(200).send(req.body);
+        })
+        .catch(function(errorCode){
+            res.sendStatus(errorCode);
+    });
 });
 
 // Abbandono di una chat da parte dell'utente corrente
@@ -59,12 +65,12 @@ app.get('/api/chat/all/user/:userid', function(req,res) {
 
 // Get list of messages of a chat
 app.get('/api/chat/:chatid', function(req,res) {
-    getMessageList(req.params.chatid)
-        .then(function(messages){
+    myFirebaseManager.getAllMessages(req.params.chatid)
+        .then(function (messages) {
             res.status(201).send(messages);
         })
-        .catch(function(){
-            res.status(404).send('404');
+        .catch(function () {
+            res.status(404).send('404');;
         });
 });
 
@@ -74,9 +80,9 @@ const FirebaseManager = require('./managers/firebase-manager');
 var myFirebaseManager = new FirebaseManager();
 
 if (!myFirebaseManager.isConnected()) {
-    console.log(myFirebaseManager.getError().message);
+    logger.info(myFirebaseManager.getError().message);
 } else {
-    console.log("Firebase connection: " + myFirebaseManager.isConnected())
+    logger.info("Firebase connection: " + myFirebaseManager.isConnected())
 }
 
 
@@ -90,61 +96,39 @@ if (!myFirebaseManager.isConnected()) {
     })
     .then(function (response) {
 
-        console.log(require('util').inspect(response, false, null));
+    logger.info(require('util').inspect(response, false, null));
     })
     .catch(function (error) {
-        console.log(error);
+    logger.info(error);
     });*/
 
 
 
 
 
-// PRIVATE FUNCTIONS
-function createChat(chat) {
-    return new Promise(function (resolve, reject) {
-        myFirebaseManager.createChat(chat)
-        .then(function () {
-            resolve();
-        })
-        .catch(function () {
-            reject();
-        });
-    });
-}
 
-function getMessageList(chatId) {
-    return new Promise(function (resolve, reject) {
-        myFirebaseManager.getAllMessages(chatId)
-            .then(function (messages) {
-                resolve(messages);
-            })
-            .catch(function () {
-                reject();
-            });
-    });
-}
+
 
 function getAllMessagesForChat(chatId) {
     myFirebaseManager.getAllMessagesForChat(chatId)
         .then(function(messages) {
-            console.log(messages);
+            logger.debug(messages);
         })
         .catch(function(error){
-            console.log(error);
+            logger.debug(error);
         });
 }
 
 function getLastMessagesForChat(chatId) {
     myFirebaseManager.getLastMessagesForChat(chatId)
         .then(function(messages) {
-            console.log("HERE" + messages);
+            logger.debug("HERE" + messages);
             for (var i = 0, len = messages.length; i < len; i++) {
-                console.log(messages[i].valueOf());
-                console.log("\n");
+                logger.debug(messages[i].valueOf());
+                logger.debug("\n");
             }
         })
         .catch(function(error){
-            console.log(error);
+            logger.debug(error);
         });
 }

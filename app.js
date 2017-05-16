@@ -1,9 +1,12 @@
 // Main application script
 //const chatRouter = require('./routes');
-const express = require('express'), bodyParser = require('body-parser');
+const express = require('express');
+const bodyParser = require('body-parser');
 const logger = require('winston');
 const app = express();
 const promise = require('promise');
+const FirebaseManager = require('./managers/firebase-manager');
+
 
 // Get all environment constants
 /*var projectName = process.env.MM_PROJECT_NAME;
@@ -13,9 +16,16 @@ var chatDBPassword = process.env.MM_CHAT_DB_PASSWORD;
 var chatServerPort = process.env.MM_CHAT_SERVER_PORT;
 var development = process.env.MM_CHAT_DEVELOPMENT;*/
 
+/* FIREBASE MANAGER */
+var myFirebaseManager = new FirebaseManager();
+if (!myFirebaseManager.isConnected()) {
+    logger.info(myFirebaseManager.getError().message);
+} else {
+    logger.info("Firebase connection: " + myFirebaseManager.isConnected())
+}
+
 /* ROUTING AND LOGGING */
 app.use(bodyParser.json());
-
 app.listen(3000, function () {
   logger.info('Listening on port 3000...');
 });
@@ -23,11 +33,12 @@ app.listen(3000, function () {
 //API
 // Sample page
 app.get('/', function(req, res) {
-  res.send('Ciao Matteo! Benvenuto nel modulo di chat!');
+  res.send('Ciao! Benvenuto nel modulo di chat!');
 });
 
 // Chat creation (single or group)
 app.post('/api/chat', function(req, res) {
+    //TODO: validate chat json
     myFirebaseManager.createChat(req.body)
         .then(function () {
             res.status(201).send('201');
@@ -51,6 +62,14 @@ app.post('/api/chat/:chatid/message', function(req,res) {
         .catch(function(errorCode){
             res.sendStatus(errorCode);
     });
+    // Get token from LOGIN module, passing all participants in chat :chatid
+    myFirebaseManager.sendMessage(["registration_token_1"], "Test", "This is the body of the notification", {custom: "This is a custom field!"})
+        .then(function (response) {
+            logger.info('sent');
+        })
+        .catch(function (error) {
+            logger.info('not sent');
+        });
 });
 
 // Abbandono di una chat da parte dell'utente
@@ -97,62 +116,3 @@ app.delete('/api/chat/:chatid', function (req,res) {
             res.status(404).send('404');
         });
 });
-
-
-//FIREBASE MANAGER
-const FirebaseManager = require('./managers/firebase-manager');
-var myFirebaseManager = new FirebaseManager();
-
-if (!myFirebaseManager.isConnected()) {
-    logger.info(myFirebaseManager.getError().message);
-} else {
-    logger.info("Firebase connection: " + myFirebaseManager.isConnected())
-}
-
-
-
-
-
-/*myFirebaseManager.sendMessage([
-        "eqjzyaNz-RQ:APA91bHTSSs17dwYy9iJSuPY-36LQn_9CouUvujcGn2MZ6txhkDZ8bSpiU7HgF5tyuuLa3z_MRKJtCpCm4aav4lm09oEO4zRwkR6h221h6lTXcrL8JDcoSBDRiZTlYPbymlBgpvoVTdm"],
-    "Test", "This is the body of the notification", {
-        custom: "This is a custom field!"
-    })
-    .then(function (response) {
-
-    logger.info(require('util').inspect(response, false, null));
-    })
-    .catch(function (error) {
-    logger.info(error);
-    });*/
-
-
-
-
-
-
-
-
-function getAllMessagesForChat(chatId) {
-    myFirebaseManager.getAllMessagesForChat(chatId)
-        .then(function(messages) {
-            logger.debug(messages);
-        })
-        .catch(function(error){
-            logger.debug(error);
-        });
-}
-
-function getLastMessagesForChat(chatId) {
-    myFirebaseManager.getLastMessagesForChat(chatId)
-        .then(function(messages) {
-            logger.debug("HERE" + messages);
-            for (var i = 0, len = messages.length; i < len; i++) {
-                logger.debug(messages[i].valueOf());
-                logger.debug("\n");
-            }
-        })
-        .catch(function(error){
-            logger.debug(error);
-        });
-}

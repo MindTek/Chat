@@ -218,7 +218,7 @@ FirebaseManager.prototype.getLastMessage = function (chatId) {
         var messageRef = this.getMessagesRef();
         var p = new Promise(function (resolve, reject) {
             if (status === FirebaseManager.STATUS_CONNECTED) {
-                chatRef.child(newChat.id).set(newChat, function (error) {
+                chatRef.child(newChat.id).child('last_message').once('value', function (error) {
                     if (error) {
                         reject();
                     } else {
@@ -239,6 +239,7 @@ FirebaseManager.prototype.getLastMessage = function (chatId) {
  */
 FirebaseManager.prototype.deleteChat = function (chatId) {
         var chatRef = this.getChatsRef();
+        var userRef = this.getUsersRef();
         var p = new Promise(function (resolve, reject) {
             if (status === FirebaseManager.STATUS_CONNECTED) {
                 chatRef.child(chatId).update({"deleted": "true"}, function (error) {
@@ -301,7 +302,6 @@ FirebaseManager.prototype.getChatUsers = function(chatId) {
     });
     return p;
 };
-
 
 // FIREBASE MANAGEMENT
 /**

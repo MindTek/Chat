@@ -16,7 +16,7 @@ var chatSchema = {
         "name": { "type": "string" },
         "type": { "type": "number" },
     },
-    "required": ["id", "img", "last_message", "name", "type"]
+    "required": ["id", "img", "name"]
 };
 var messageSchema = {
     "properties": {
@@ -46,7 +46,7 @@ var userSchema = {
         "img": { "type": "string" },
         "role": { "type": "string" },
     },
-    "required": ["id", "full_name", "img", "role"]
+    "required": ["id", "full_name", "img"]
 };
 
 function validateChat(chat) {

@@ -1,17 +1,22 @@
 const express = require('express');
 const router = express.Router();
 const schema = require('../db/schema');
+const FirebaseManager = require('../managers/firebase-manager');
 
-// Sample page
+/**
+ * Placeholder to show an entry point.
+ */
 router.get('/', function(req, res) {
     res.send('Ciao! Benvenuto nel modulo di chat!');
 });
 
-// Chat creation (single or group)
+/**
+ * Create a new chat, of either single or group.
+ */
 router.post('/chat', function(req, res) {
     var chat = req.body;
     if (schema.validateChat(chat)) {
-        myFirebaseManager.createChat(chat)
+        FirebaseManager.createChat(chat)
             .then(function () {
                 res.status(201).send('201');
             })
@@ -24,16 +29,31 @@ router.post('/chat', function(req, res) {
 
 });
 
-// modifica parametri chat 1-1 e 1-N - Qui verranno modificate tutte le opzioni della chat, ovvero l'aggiunta/rimozione di partecipanti*/
-router.put('/chat/:chatid', function(req,res) {
+/**
+ * Update name, image and participants of a specific chat.
+ * Participants MUST be passed as an array.
+ */
+router.put('/chat/:chatid', function(req, res) {
+    var chat = req.body;
+    if (schema.validateChat(chat)) {
+        FirebaseManager.updateChat(chat)
+        .then(function () {
+            res.sendStatus(201);
+        })
+        .catch(function () {
+            res.sendStatus(400);
+        });
+    } else {
+        res.sendStatus(400);
+    }
 
 });
 
 // Invio nuovo messaggio
-router.post('/chat/:chatid/message', function(req,res) {
+router.post('/chat/:chatid/message', function(req, res) {
     var message = req.body;
     if (schema.validateMessage(message)) {
-        myFirebaseManager.saveMessage(message)
+        FirebaseManager.saveMessage(message)
             .then(function (statusCode) {
                 res.status(200).send(message);
             })
@@ -41,7 +61,7 @@ router.post('/chat/:chatid/message', function(req,res) {
                 res.sendStatus(errorCode);
             });
         // Get token from LOGIN module, passing all participants in chat :chatid
-        myFirebaseManager.sendMessage(["registration_token_1"], "Test", "This is the body of the notification", {custom: "This is a custom field!"})
+        FirebaseManager.sendMessage(["registration_token_1"], "Test", "This is the body of the notification", {custom: "This is a custom field!"})
             .then(function (response) {
                 logger.info('sent');
             })
@@ -55,7 +75,7 @@ router.post('/chat/:chatid/message', function(req,res) {
 
 // Abbandono di una chat da parte dell'utente
 router.put('/chat/:chatid/users/:userid/remove', function(req,res) {
-    myFirebaseManager.removeUser(req.params.userid, req.params.chatid)
+    FirebaseManager.removeUser(req.params.userid, req.params.chatid)
         .then(function () {
             res.status(201).send('201');
         })
@@ -66,7 +86,7 @@ router.put('/chat/:chatid/users/:userid/remove', function(req,res) {
 
 // Get chat list of current user
 router.get('/chat/all/user/:userid', function(req,res) {
-    myFirebaseManager.getChats(req.params.userid)
+    FirebaseManager.getChats(req.params.userid)
         .then(function (chats) {
             res.status(201).send(chats);
         })
@@ -77,7 +97,7 @@ router.get('/chat/all/user/:userid', function(req,res) {
 
 // Get list of messages of a chat
 router.get('/chat/:chatid', function(req,res) {
-    myFirebaseManager.getAllMessages(req.params.chatid)
+    FirebaseManager.getAllMessages(req.params.chatid)
         .then(function (messages) {
             res.status(201).send(messages);
         })
@@ -88,7 +108,7 @@ router.get('/chat/:chatid', function(req,res) {
 
 // Delete chat
 router.delete('/chat/:chatid', function (req,res) {
-    myFirebaseManager.deleteChat(req.params.chatid)
+    FirebaseManager.deleteChat(req.params.chatid)
         .then(function () {
             res.status(201).send('201');
         })
@@ -99,7 +119,7 @@ router.delete('/chat/:chatid', function (req,res) {
 
 //Get last message of a chat
 router.get('/chat/:chatid/lastmessage', function(req, res) {
-    myFirebaseManager.getLastMessage(req.params.chatid)
+    FirebaseManager.getLastMessage(req.params.chatid)
         .then(function () {
             res.status(201).send('201');
         })

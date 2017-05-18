@@ -1,5 +1,6 @@
 const Firebase = require('firebase-admin');
 const Promise = require('promise');
+const logger = require('winston');
 
 var serviceAccount = require('./../config/serviceAccountKey.json');
 
@@ -60,7 +61,6 @@ FirebaseManager.prototype.sendMessage = function (tokens, payload) {
 FirebaseManager.prototype.sendMessage = function (tokens, notificationTitle, notificationBody, customData) {
 
     if (status === FirebaseManager.STATUS_CONNECTED) {
-
         return this.getFirebaseApp().messaging().sendToDevice(tokens, {
             notification: {
                 title: notificationTitle,
@@ -69,7 +69,6 @@ FirebaseManager.prototype.sendMessage = function (tokens, notificationTitle, not
             data: customData
         });
     } else {
-
         var error = this.getError();
         if (error) {
             throw error;
@@ -82,7 +81,7 @@ FirebaseManager.prototype.sendMessage = function (tokens, notificationTitle, not
 
 /* API */
 /**
- * Create a new chat.
+ * Create a new chat, inserting a new node in chat element.
  * @param newChat
  * @returns {Promise}
  */
@@ -104,18 +103,142 @@ FirebaseManager.prototype.createChat = function (newChat) {
     return p;
 };
 
+/**
+ * Create a new user entry inside users node.
+ * @param newUser
+ * @returns {Promise}
+ */
+FirebaseManager.prototype.createUser = function (newUser) {
+    var userRef = this.getUsersRef();
+    var p = new Promise(function (resolve, reject) {
+        if (status === FirebaseManager.STATUS_CONNECTED) {
+            userRef.child(newUser.id).set(newUser, function (error) {
+                if (error) {
+                    reject();
+                } else {
+                    resolve();
+                }
+            })
+        } else {
+            reject();
+        }
+    });
+    return p;
+};
+
+/**
+ * Post a new message to a specific chat.
+ * It creates a new entry inside message node.
+ * Update chat with latest message.
+ * @param newMessage
+ * @returns {Promise}
+ */
+FirebaseManager.prototype.saveMessage = function (newMessage) {
+    var messageRef = this.getMessagesRef();
+    var p = new Promise(function(resolve, reject) {
+        if (status === FirebaseManager.STATUS_CONNECTED) {
+            messageRef.push(newMessage, function (error) {
+                if (error) {
+                    reject();
+                } else {
+                    resolve();
+                }
+            });
+        } else {
+            reject();
+        }
+    });
+    // Update chat with latest message
+    var lastMessage = {"last_message": newMessage};
+    var chatRef = this.getChatsRef();
+    chatRef.child(newMessage.chat_id).update(lastMessage, function(error) {
+        if (error) {
+            logger.info('Chat last message not updated!');
+        }
+    });
+    return p;
+};
 
 
 /**
  * Get all messages of a specific chat.
  * @param chatId
- * @returns {Promise}
+ * @returns {Promise [messages]}
  */
 FirebaseManager.prototype.getAllMessages = function (chatId) {
     var messageRef = this.getMessagesRef();
     var p = new Promise(function (resolve, reject) {
         if (status === FirebaseManager.STATUS_CONNECTED) {
             messageRef.orderByChild('chat_id').equalTo(chatId).once('value', function (snapshot) {
+                resolve(snapshot.val());
+            }), function (error) {
+                if (error) {
+                    reject();
+                }
+            }
+        } else {
+            reject();
+        }
+    });
+    return p;
+};
+
+/**
+ * Get last message of a specific chat. Stored into each chat and updated every new message.
+ * @param chatId
+ * @returns {Promise}
+ */
+FirebaseManager.prototype.getLastMessage = function (chatId) {
+    var messageRef = this.getMessagesRef();
+    var p = new Promise(function (resolve, reject) {
+        if (status === FirebaseManager.STATUS_CONNECTED) {
+            chatRef.child(newChat.id).child('last_message').once('value', function(snapshot) {
+                resolve(snapshot.val());
+            }, function (error) {
+                if (error) {
+                    reject();
+                }
+            });
+        } else {
+            reject();
+        }
+    });
+    return p;
+};
+
+/** Get list of chats in which an user is participating.
+ * @param userId
+ * @returns {Promise [chats]}
+ */
+FirebaseManager.prototype.getChats = function (userId) {
+        var userRef = this.getUsersRef();
+        var p = new Promise(function (resolve, reject) {
+            if (status === FirebaseManager.STATUS_CONNECTED) {
+                userRef.child(userId).child('chats').once('value', function (snapshot) {
+                    resolve(snapshot.val());
+                }), function (error) {
+                    if (error) {
+                        reject();
+                    }
+                }
+            } else {
+                reject();
+            }
+        });
+        return p;
+};
+
+/**
+ * Retrieve users which are participating to a chat.
+ * NOTE: Returned value only includes id of users. YOU HAVE TO get user info with another query.
+ * @param chatId
+ * @returns {Promise [users_id]}
+ */
+FirebaseManager.prototype.getChatUsers = function(chatId) {
+    var chatRef = this.getChatsRef();
+    var p = new Promise(function (resolve, reject) {
+        if (status === FirebaseManager.STATUS_CONNECTED) {
+            chatRef.child(chatId).child(users).once('value', function (snapshot) {
                 resolve(snapshot.val());
             }), function (error) {
                 reject();
@@ -127,24 +250,27 @@ FirebaseManager.prototype.getAllMessages = function (chatId) {
     return p;
 };
 
-/** Get list of chats in which an user is participating.
-  * @param userId
+/**
+ * Get user info (name and/or image).
+ * @param userId
  * @returns {Promise}
  */
-FirebaseManager.prototype.getChats = function (userId) {
-        var userRef = this.getUsersRef();
-        var p = new Promise(function (resolve, reject) {
-            if (status === FirebaseManager.STATUS_CONNECTED) {
-                userRef.child(userId).child('chats').once('value', function (snapshot) {
-                    resolve(snapshot.val());
-                }), function (error) {
+FirebaseManager.prototype.getUserInfo = function (userId) {
+    var userRef = this.getUsersRef();
+    var p = new Promise(function (resolve, reject) {
+        if (status === FirebaseManager.STATUS_CONNECTED) {
+            userRef.child(userId).once('value', function(snapshot) {
+                resolve(snapshot.val());
+            }, function (error) {
+                if (error) {
                     reject();
                 }
-            } else {
-                reject();
-            }
-        });
-        return p;
+            });
+        } else {
+            reject();
+        }
+    });
+    return p;
 };
 
 /**
@@ -152,8 +278,9 @@ FirebaseManager.prototype.getChats = function (userId) {
  * @param chatId
  * @returns {Promise}
  */
-FirebaseManager.prototype.updateChat = function(chatId) {
+FirebaseManager.prototype.updateChat = function(newChat) {
         var chatRef = this.getChatsRef();
+        var userRef = this.getUsersRef();
         var p = new Promise(function (resolve, reject) {
             if (status === FirebaseManager.STATUS_CONNECTED) {
                 chatRef.child(newChat.id).set(newChat, function (error) {
@@ -161,68 +288,12 @@ FirebaseManager.prototype.updateChat = function(chatId) {
                         reject();
                     } else {
                         resolve();
-                    }
-                })
-            } else {
-                reject();54
-            }
-        });
-        return p;
-};
-
-/**
- * Post a new message to a specific chat.
- * Update chat with latest message.
- * @param newMessage
- * @returns {Promise}
- */
-FirebaseManager.prototype.saveMessage = function (newMessage) {
-        var messageRef = this.getMessagesRef();
-        var p = new Promise(function(resolve, reject) {
-            if (status === FirebaseManager.STATUS_CONNECTED) {
-                // NOTE: Here I am creating a new node and putting a value inside it
-                messageRef.push(newMessage, function (error) {
-                    if (error) {
-                        reject(404);
-                    } else {
-                        resolve(200);
-                    }
-                });
-            } else {
-                reject();
-            }
-        });
-        // Update chat with latest message
-        var lastMessage = {"last_message": newMessage};
-        var chatRef = this.getChatsRef();
-        chatRef.child(newMessage.chat_id).update(lastMessage, function(error) {
-            if (error) {
-                logger.info('Chat last message not updated!');
-            }
-        });
-        var userRef = this.getUsersRef();
-        userRef.child(newMessage.chat_id).child('last_message').once('value', function(error) {
-            if (error) {
-                logger.info('Chat last message not updated!');
-            }
-        });
-        return p;
-};
-
-/**
- * Get last message of a specific chat. Stored into each chat and updated every new message.
- * @param chatId
- * @returns {Promise}
- */
-FirebaseManager.prototype.getLastMessage = function (chatId) {
-        var messageRef = this.getMessagesRef();
-        var p = new Promise(function (resolve, reject) {
-            if (status === FirebaseManager.STATUS_CONNECTED) {
-                chatRef.child(newChat.id).child('last_message').once('value', function (error) {
-                    if (error) {
-                        reject();
-                    } else {
-                        resolve();
+                        console.log('I am continuing..');
+                        console.log(newChat.id);
+                        /*newChat.users.forEach((currentUser) => {
+                            var chatToInsert = {[newChat.id : newChat.id};
+                            userRef.child(currentUser.id).child('chats').set(newChat);
+                        });*/
                     }
                 })
             } else {
@@ -233,7 +304,31 @@ FirebaseManager.prototype.getLastMessage = function (chatId) {
 };
 
 /**
- * Delete chat, set a flag which marks it as deleted
+ * Update an user (name and/or image).
+ * It updates only element inside user node.
+ * @param user
+ * @returns {Promise}
+ */
+FirebaseManager.prototype.updateUser = function (user) {
+    var userRef = this.getUsersRef();
+    var p = new Promise(function (resolve, reject) {
+        if (status === FirebaseManager.STATUS_CONNECTED) {
+            userRef.child(user.id).update(user, function (error) {
+                if (error) {
+                    reject();
+                } else {
+                    resolve();
+                }
+            })
+        } else {
+            reject();
+        }
+    });
+    return p;
+};
+
+/**
+ * Delete chat, set a flag which marks it as deleted.
  * @param chatId
  * @returns {Promise}
  */
@@ -248,7 +343,7 @@ FirebaseManager.prototype.deleteChat = function (chatId) {
                     } else {
                         resolve();
                     }
-                })
+                });
             } else {
                 reject();
             }
@@ -285,22 +380,6 @@ FirebaseManager.prototype.removeUser = function (userId, chatId) {
             }
         });
         return p;
-};
-
-FirebaseManager.prototype.getChatUsers = function(chatId) {
-    var chatRef = this.getChatsRef();
-    var p = new Promise(function (resolve, reject) {
-        if (status === FirebaseManager.STATUS_CONNECTED) {
-            chatRef.child(chatId).child(users).once('value', function (snapshot) {
-                resolve(snapshot.val());
-            }), function (error) {
-                reject();
-            }
-        } else {
-            reject();
-        }
-    });
-    return p;
 };
 
 // FIREBASE MANAGEMENT
@@ -447,5 +526,12 @@ FirebaseManager.STATUS_CONNECTED = 1;
  */
 FirebaseManager.STATUS_ERROR = -1;
 
+/* FIREBASE MANAGER */
+var FBManager = new FirebaseManager();
+if (!FBManager.isConnected()) {
+    logger.info(FBManager.getError().message);
+} else {
+    logger.info("Firebase connection: " + FBManager.isConnected())
+}
 
-module.exports = FirebaseManager;
+module.exports = FBManager;

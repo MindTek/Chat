@@ -170,7 +170,13 @@ FirebaseManager.prototype.getAllMessages = function (chatId) {
     var p = new Promise(function (resolve, reject) {
         if (status === FirebaseManager.STATUS_CONNECTED) {
             messageRef.orderByChild('chat_id').equalTo(chatId).once('value', function (snapshot) {
-                resolve(snapshot.val());
+                var messages = new Array();
+                var result = snapshot.val();
+                // Build array for client
+                for (var mess in result) {
+                    messages.push(result[mess]);
+                }
+                resolve(messages);
             }), function (error) {
                 if (error) {
                     reject();
@@ -193,7 +199,13 @@ FirebaseManager.prototype.getLastMessage = function (chatId) {
     var p = new Promise(function (resolve, reject) {
         if (status === FirebaseManager.STATUS_CONNECTED) {
             chatRef.child(newChat.id).child('last_message').once('value', function(snapshot) {
-                resolve(snapshot.val());
+                var messages = new Array();
+                var result = snapshot.val();
+                // Build array for client
+                for (var mess in result) {
+                    messages.push(result[mess]);
+                }
+                resolve(messages);
             }, function (error) {
                 if (error) {
                     reject();
@@ -212,10 +224,22 @@ FirebaseManager.prototype.getLastMessage = function (chatId) {
  */
 FirebaseManager.prototype.getChats = function (userId) {
         var userRef = this.getUsersRef();
+        var chatRef = this.getChatsRef();
         var p = new Promise(function (resolve, reject) {
             if (status === FirebaseManager.STATUS_CONNECTED) {
                 userRef.child(userId).child('chats').once('value', function (snapshot) {
-                    resolve(snapshot.val());
+                    var allPromises = new Array();
+                    for (var chatId in snapshot.val()) {
+                        var innerPromise = new Promise((resolve, reject) => {
+                            chatRef.orderByKey().equalTo(chatId).once('value', function (snapshot) {
+                                resolve(snapshot.val());
+                            });
+                        });
+                        allPromises.push(innerPromise);
+                    }
+                    Promise.all(allPromises).then(values => {
+                        resolve(values);
+                    });
                 }), function (error) {
                     if (error) {
                         reject();
@@ -229,17 +253,36 @@ FirebaseManager.prototype.getChats = function (userId) {
 };
 
 /**
- * Retrieve users which are participating to a chat.
+ * Get users which are participating to a chat.
  * NOTE: Returned value only includes id of users. YOU HAVE TO get user info with another query.
  * @param chatId
  * @returns {Promise [users_id]}
  */
 FirebaseManager.prototype.getChatUsers = function(chatId) {
     var chatRef = this.getChatsRef();
+    var userRef = this.getUsersRef();
     var p = new Promise(function (resolve, reject) {
         if (status === FirebaseManager.STATUS_CONNECTED) {
-            chatRef.child(chatId).child(users).once('value', function (snapshot) {
-                resolve(snapshot.val());
+            console.log(chatId);
+            chatRef.child(chatId).child('users').once('value', function (snapshot) {
+                let allPromises = new Array();
+                let result = snapshot.val();
+                for (var userId in result) {
+                    var innerPromise = new Promise((resolve, reject) => {
+                        userRef.child(userId).once('value', function (snapshot) {
+                            var resultingObject = snapshot.val();
+                            var userRole = result[userId].role;
+                            delete resultingObject['chats'];
+                            resultingObject['role'] = userRole;
+                            console.log(resultingObject);
+                            resolve(resultingObject);
+                        });
+                    });
+                    allPromises.push(innerPromise);
+                }
+                Promise.all(allPromises).then(values => {
+                    resolve(values);
+                });
             }), function (error) {
                 reject();
             }
@@ -260,6 +303,29 @@ FirebaseManager.prototype.getUserInfo = function (userId) {
     var p = new Promise(function (resolve, reject) {
         if (status === FirebaseManager.STATUS_CONNECTED) {
             userRef.child(userId).once('value', function(snapshot) {
+                resolve(snapshot.val());
+            }, function (error) {
+                if (error) {
+                    reject();
+                }
+            });
+        } else {
+            reject();
+        }
+    });
+    return p;
+};
+
+/**
+ * Get chat info (name, image, type, last message).
+ * @param userId
+ * @returns {Promise}
+ */
+FirebaseManager.prototype.getChatInfo = function (chatId) {
+    var chatRef = this.getChatsRef();
+    var p = new Promise(function (resolve, reject) {
+        if (status === FirebaseManager.STATUS_CONNECTED) {
+            chatRef.child(chatId).once('value', function(snapshot) {
                 resolve(snapshot.val());
             }, function (error) {
                 if (error) {

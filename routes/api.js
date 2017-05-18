@@ -49,7 +49,10 @@ router.put('/chat/:chatid', function(req, res) {
 
 });
 
-// Invio nuovo messaggio
+/**
+ * Create and post a new message to a chat.
+ * Send notification to user involved in that chat.
+ */
 router.post('/chat/:chatid/message', function(req, res) {
     var message = req.body;
     if (schema.validateMessage(message)) {
@@ -73,7 +76,10 @@ router.post('/chat/:chatid/message', function(req, res) {
     }
 });
 
-// Abbandono di una chat da parte dell'utente
+/**
+ * Remove a user from a specific chat when it decide to leave it.
+ * TODO: MAnage logic to get user role and to decide what to do according to it.
+ */
 router.put('/chat/:chatid/users/:userid/remove', function(req,res) {
     FirebaseManager.removeUser(req.params.userid, req.params.chatid)
         .then(function () {
@@ -84,10 +90,14 @@ router.put('/chat/:chatid/users/:userid/remove', function(req,res) {
         });
 });
 
-// Get chat list of current user
+/**
+ * Get chats list of specific user.
+ * Return an array of chats.
+ */
 router.get('/chat/all/user/:userid', function(req,res) {
     FirebaseManager.getChats(req.params.userid)
         .then(function (chats) {
+            console.log(chats);
             res.status(201).send(chats);
         })
         .catch(function () {
@@ -95,8 +105,10 @@ router.get('/chat/all/user/:userid', function(req,res) {
         });
 });
 
-// Get list of messages of a chat
-router.get('/chat/:chatid', function(req,res) {
+/**
+ * Get alla messages in a chat.
+ */
+router.get('/chat/:chatid/message/all', function(req,res) {
     FirebaseManager.getAllMessages(req.params.chatid)
         .then(function (messages) {
             res.status(201).send(messages);
@@ -106,7 +118,36 @@ router.get('/chat/:chatid', function(req,res) {
         });
 });
 
-// Delete chat
+/**
+ * Get information and status of a chat.
+ */
+router.get('/chat/:chatid', function(req,res) {
+    FirebaseManager.getChatInfo(req.params.chatid)
+        .then(function (info) {
+            res.status(201).send(info);
+        })
+        .catch(function () {
+            res.status(404).send('404');;
+        });
+});
+
+/**
+ * Get participants of a chat.
+ */
+router.get('/chat/:chatid/user/all', function(req,res) {
+    FirebaseManager.getChatUsers(req.params.chatid)
+        .then(function (users) {
+            res.status(201).send(users);
+        })
+        .catch(function () {
+            res.status(404).send('404');;
+        });
+});
+
+/**
+ * Delete chat, set a flag on it.
+ * TODO: remove chat reference from user ???
+ */
 router.delete('/chat/:chatid', function (req,res) {
     FirebaseManager.deleteChat(req.params.chatid)
         .then(function () {
@@ -117,7 +158,9 @@ router.delete('/chat/:chatid', function (req,res) {
         });
 });
 
-//Get last message of a chat
+/**
+ * Get latest message (one only) of a specific chat.
+ */
 router.get('/chat/:chatid/lastmessage', function(req, res) {
     FirebaseManager.getLastMessage(req.params.chatid)
         .then(function () {

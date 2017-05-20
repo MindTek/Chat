@@ -12,33 +12,38 @@ router.get('/', function(req, res) {
 
 /**
  * Create a new chat, of either single or group.
+ * Returns id of created chat.
+ * Chat can be created without users. Type is required.
  */
 router.post('/chat', function(req, res) {
     var chat = req.body;
+
     if (schema.validateChat(chat)) {
         FirebaseManager.createChat(chat)
-            .then(function () {
-                res.status(201).send('201');
+            .then(function (chatId) {
+                res.setHeader('Content-Type', 'application/json');
+                res.status(201).send(JSON.stringify({ 'id': chatId }));
             })
             .catch(function () {
-                res.status(400).send('400');
+                res.sendStatus(400);
             });
     } else {
-        res.status(400).send('400');
+        res.sendStatus(400);
     }
 
 });
 
 /**
  * Update name, image and participants of a specific chat.
- * Participants MUST be passed as an array.
+ * Id must be passed inside chat object.
+ * Participants MUST be passed as an array. Id is required only.
  */
 router.put('/chat/:chatid', function(req, res) {
     var chat = req.body;
     if (schema.validateChat(chat)) {
         FirebaseManager.updateChat(chat)
         .then(function () {
-            res.sendStatus(201);
+            res.sendStatus(200);
         })
         .catch(function () {
             res.sendStatus(400);

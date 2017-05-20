@@ -89,13 +89,14 @@ FirebaseManager.prototype.createChat = function (newChat) {
     var chatRef = this.getChatsRef();
     var p = new Promise(function (resolve, reject) {
         if (status === FirebaseManager.STATUS_CONNECTED) {
-            chatRef.child(newChat.id).set(newChat, function (error) {
+            var newChatRef = chatRef.push(newChat, function (error) {
+            //chatRef.child(newChat.id).set(newChat, function (error) {
                 if (error) {
                     reject();
-                } else {
-                    resolve();
                 }
-            })
+            });
+            var chatId = newChatRef.key;
+            resolve(chatId);
         } else {
             reject();
         }
@@ -354,12 +355,11 @@ FirebaseManager.prototype.updateChat = function(newChat) {
                         reject();
                     } else {
                         resolve();
-                        console.log('I am continuing..');
-                        console.log(newChat.id);
-                        /*newChat.users.forEach((currentUser) => {
+                        console.log('I am continuing. Update users now...');
+                        newChat.users.forEach((currentUser) => {
                             var chatToInsert = {[newChat.id : newChat.id};
                             userRef.child(currentUser.id).child('chats').set(newChat);
-                        });*/
+                        });
                     }
                 })
             } else {

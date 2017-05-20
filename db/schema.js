@@ -14,9 +14,9 @@ var chatSchema = {
             "required": ["text", "timestamp"]
         },
         "name": { "type": "string" },
-        "type": { "type": "number" },
+        "type": { "type": "string" },
     },
-    "required": ["id", "img", "name"]
+    "required": ["type", "img", "name"]
 };
 var messageSchema = {
     "properties": {
@@ -44,7 +44,7 @@ var userSchema = {
         "full_name": { "type": "string" },
         "id": { "type": "string" },
         "img": { "type": "string" },
-        "role": { "type": "string" },
+        //"role": { "type": "string" },
     },
     "required": ["id", "full_name", "img"]
 };

@@ -1,3 +1,4 @@
+const {logger} = require('../helpers/init');
 const request = require('request');
 
 function getFirebaseToken(users, callback) {
@@ -9,7 +10,7 @@ function getFirebaseToken(users, callback) {
             if (error) {
                 reject(error);
             } else {
-                resolve(["bk3RNwTe3H0:CI2k_HHwgIpoDKCIZvvDMExUdFQ3P12", "ecupwIfBy1w:APA91bFtuMY7MktgxA3Au_Qx7cKqnf"]);
+                resolve(["fE-avN0BOlM:APA91bH52eczdMGM3ZUnZg2d_f9EMZMC23CdXhnzu1044eX8V8WmuwYREDMMsz37MdukRtj4sZoUwayW2Nsn1OubBuq9sNoA8GR_z04kIWR4EZsSvQD2Wca_rP3HURI0zZCTL5uZTXbo"]);
             }
         });
     });

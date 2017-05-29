@@ -1,8 +1,7 @@
 const Firebase = require('firebase-admin');
 const Promise = require('promise');
-const logger = require('winston');
-
-var serviceAccount = require('./../config/serviceAccountKey.json');
+const logger = require('../helpers/init').logger;
+const serviceAccount = require('./../config/serviceAccountKey.json');
 
 var status;
 var firebaseConfig;
@@ -153,7 +152,7 @@ FirebaseManager.prototype.saveMessage = function (newMessage) {
     var chatRef = this.getChatsRef();
     chatRef.child(newMessage.chat_id).update(lastMessage, function(error) {
         if (error) {
-            console.log('Chat last message not updated!');
+            logger('Chat last message not updated!');
         }
     });
     return p;
@@ -240,7 +239,7 @@ FirebaseManager.prototype.getChats = function (userId) {
                     }
                     Promise.all(allPromises).then(values => {
                         if (typeof(values[0])!='undefined') {
-                            console.log(values);
+                            logger(values);
                             resolve(values);
                         } else {
                             resolve([]);
@@ -273,10 +272,14 @@ FirebaseManager.prototype.getChatUsers = function(chatId) {
             chatRef.child(chatId).child('users').once('value', function (snapshot) {
                 let allPromises = new Array();
                 let snap = snapshot.val();
+                logger.info(JSON.stringify(snap));
                 var result = [];
-                snap.forEach(function(item) {
+                for (var userKey in snap) {
+                    result.push(snap[userKey]);
+                }
+                /*snap.forEach(function(item) {
                     result.push(item);
-                });
+                });*/
                 result.forEach(function (user) {
                     var innerPromise = new Promise((resolve, reject) => {
                         userRef.child(user.id).once('value', function (snapshot) {
@@ -289,7 +292,7 @@ FirebaseManager.prototype.getChatUsers = function(chatId) {
                     allPromises.push(innerPromise);
                 });
                 Promise.all(allPromises).then(values => {
-                    console.log('values ' + values);
+                    logger('values ' + values);
                     resolve(values);
                 });
             }), function (error) {
@@ -355,7 +358,7 @@ FirebaseManager.prototype.getChatInfo = function (chatId) {
  * @returns {Promise}
  */
 FirebaseManager.prototype.updateChat = function(newChat) {
-    console.log("Updating..");
+    logger("Updating..");
         var chatRef = this.getChatsRef();
         var userRef = this.getUsersRef();
         var p = new Promise(function (resolve, reject) {
@@ -426,6 +429,47 @@ FirebaseManager.prototype.deleteChat = function (chatId) {
             }
         });
         return p;
+};
+
+/**
+ * UPDATE THIS COMMENT
+ * Add specific user from a chat. User will be added as simple user, NOT admin.
+ * This cancel reference from both chat object and user object.
+ * @param users Array of users' ids
+ * @param chatId
+ * @returns {Promise}
+ */
+FirebaseManager.prototype.addUser = function (users, chatId) {
+    var chatRef = this.getChatsRef();
+    var userRef = this.getUsersRef();
+    var p = new Promise(function (resolve, reject) {
+        if (status === FirebaseManager.STATUS_CONNECTED) {
+            // Add user ref from chat
+            users.forEach(function(id) {
+                var newUser = {"id": id, "role": "USER"};
+                logger.info(newUser);
+                chatRef.child(chatId).child("users").push(newUser, function(error) {
+                    if (error) {
+                        reject("Cannot add user to chat.");
+                    } else {
+                        // Add chat ref to every users added
+                        var newChat = {};
+                        newChat[chatId] = chatId;
+                        userRef.child(id).child("chats").update(newChat, function(error) {
+                            if (error) {
+                                reject("Cannot add chat to user.");
+                            } else {
+                                resolve();
+                            }
+                        });
+                    }
+                });
+            });
+        } else {
+            reject('Firebase not connected');
+        }
+    });
+    return p;
 };
 
 /**

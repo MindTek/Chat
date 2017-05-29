@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const schema = require('../db/schema');
 const FirebaseManager = require('../managers/firebase-manager');
+const {logger} = require('../helpers/init');
 
 /**
  * Creation of a new user, called when a new user is registered.
@@ -13,7 +14,7 @@ const FirebaseManager = require('../managers/firebase-manager');
  */
 router.post('/users', function(req, res) {
     var user = req.body;
-    console.log(user);
+    logger(user);
     if (schema.validateUser(user)) {
         FirebaseManager.createUser(user)
             .then(function () {

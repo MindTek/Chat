@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const schema = require('../db/schema');
 const FirebaseManager = require('../managers/firebase-manager');
+const {logger} = require('../helpers/init');
 const LoginManager = require('../helpers/requests');
 
 /**
@@ -56,6 +57,34 @@ router.put('/chat/:chatid', function(req, res) {
 });
 
 /**
+ * Add participants to a specific chat. It is valid for group only.
+ * Every user added should receive a notification.
+ */
+router.put('/chat/:chatid/users/add', function(req, res) {
+    var usersArray = req.body["users"];
+    FirebaseManager.addUser(usersArray, req.params.chatid)
+        .then(function (response) {
+            res.status(200).send(200);
+            LoginManager.getFirebaseToken(usersArray)
+                .then(function(tokens) {
+                    FirebaseManager.sendMessage(tokens, message.sender.name, message.text, {custom: "This is a custom field!"})
+                        .then(function (response) {
+                            console.log('Notification sent');
+                        })
+                        .catch(function (error) {
+                            console.log('Notification not sent');
+                        });
+                })
+                .catch(function(error) {
+                    console.log('Impossible to retrieve tokens');
+                });
+        })
+        .catch(function (error) {
+            res.status(404).send(error);
+        });
+});
+
+/**
  * Create and post a new message to a chat.
  * Send notification to user involved in that chat.
  */
@@ -69,13 +98,14 @@ router.post('/chat/:chatid/message', function(req, res) {
             .catch(function (errorCode) {
                 res.sendStatus(errorCode);
             });
-
         // Get users in chat and send a notification to them.
         FirebaseManager.getChatUsers(req.params.chatid)
             .then(function (users) {
                 var usersInChat = [];
+                console.log('1');
                 users.forEach(function(u) {
-                    // Don't send notification to the messasge sender.
+                    // Don't send notification to the message sender.
+                    console.log(u);
                     if (u.id == message.sender.id) {
                         return;
                     }
@@ -87,7 +117,7 @@ router.post('/chat/:chatid/message', function(req, res) {
 
                 LoginManager.getFirebaseToken(usersInChatObject)
                     .then(function(tokens) {
-                        FirebaseManager.sendMessage(tokens, "Test", message.text, {custom: "This is a custom field!"})
+                        FirebaseManager.sendMessage(tokens, notification_title.MESSAGE, message.text, {custom: "This is a custom field!"})
                             .then(function (response) {
                                 console.log('Notification sent');
                             })
@@ -104,6 +134,7 @@ router.post('/chat/:chatid/message', function(req, res) {
                 console.log('Impossible to send notification. ' + error);
             });
     } else {
+        console.log('ada');
         res.status(400).send('400');
     }
 });

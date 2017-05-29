@@ -90,9 +90,8 @@ FirebaseManager.prototype.createChat = function (newChat) {
     var p = new Promise(function (resolve, reject) {
         if (status === FirebaseManager.STATUS_CONNECTED) {
             var newChatRef = chatRef.push(newChat, function (error) {
-            //chatRef.child(newChat.id).set(newChat, function (error) {
                 if (error) {
-                    reject();
+                    reject(error);
                 }
             });
             var chatId = newChatRef.key;
@@ -138,13 +137,13 @@ FirebaseManager.prototype.saveMessage = function (newMessage) {
     var messageRef = this.getMessagesRef();
     var p = new Promise(function(resolve, reject) {
         if (status === FirebaseManager.STATUS_CONNECTED) {
-            messageRef.push(newMessage, function (error) {
+            var newMessageRef = messageRef.push(newMessage, function (error) {
                 if (error) {
                     reject();
-                } else {
-                    resolve();
                 }
             });
+            var messagePosted = newMessageRef.key;
+            resolve(messagePosted);
         } else {
             reject();
         }
@@ -154,7 +153,7 @@ FirebaseManager.prototype.saveMessage = function (newMessage) {
     var chatRef = this.getChatsRef();
     chatRef.child(newMessage.chat_id).update(lastMessage, function(error) {
         if (error) {
-            logger.info('Chat last message not updated!');
+            console.log('Chat last message not updated!');
         }
     });
     return p;
@@ -196,20 +195,15 @@ FirebaseManager.prototype.getAllMessages = function (chatId) {
  * @returns {Promise}
  */
 FirebaseManager.prototype.getLastMessage = function (chatId) {
-    var messageRef = this.getMessagesRef();
+    var chatRef = this.getChatsRef();
     var p = new Promise(function (resolve, reject) {
         if (status === FirebaseManager.STATUS_CONNECTED) {
-            chatRef.child(newChat.id).child('last_message').once('value', function(snapshot) {
-                var messages = new Array();
+            chatRef.child(chatId).child('last_message').once('value', function(snapshot) {
                 var result = snapshot.val();
-                // Build array for client
-                for (var mess in result) {
-                    messages.push(result[mess]);
-                }
-                resolve(messages);
+                resolve(result);
             }, function (error) {
                 if (error) {
-                    reject();
+                    reject('Cannot get latest message');
                 }
             });
         } else {
@@ -219,7 +213,7 @@ FirebaseManager.prototype.getLastMessage = function (chatId) {
     return p;
 };
 
-/** Get list of chats in which an user is participating.
+/** Get list of chats in which an user is participating, except deleted.
  * @param userId
  * @returns {Promise [chats]}
  */
@@ -233,13 +227,24 @@ FirebaseManager.prototype.getChats = function (userId) {
                     for (var chatId in snapshot.val()) {
                         var innerPromise = new Promise((resolve, reject) => {
                             chatRef.orderByKey().equalTo(chatId).once('value', function (snapshot) {
-                                resolve(snapshot.val());
+                                let result = snapshot.val();
+                                //Filter deleted chats
+                                if (result[chatId]['deleted'] != 'true') {
+                                    resolve(snapshot.val());
+                                } else {
+                                    resolve();
+                                }
                             });
                         });
                         allPromises.push(innerPromise);
                     }
                     Promise.all(allPromises).then(values => {
-                        resolve(values);
+                        if (typeof(values[0])!='undefined') {
+                            console.log(values);
+                            resolve(values);
+                        } else {
+                            resolve([]);
+                        }
                     });
                 }), function (error) {
                     if (error) {
@@ -253,6 +258,7 @@ FirebaseManager.prototype.getChats = function (userId) {
         return p;
 };
 
+// NO MORE WORKING
 /**
  * Get users which are participating to a chat.
  * NOTE: Returned value only includes id of users. YOU HAVE TO get user info with another query.
@@ -264,28 +270,30 @@ FirebaseManager.prototype.getChatUsers = function(chatId) {
     var userRef = this.getUsersRef();
     var p = new Promise(function (resolve, reject) {
         if (status === FirebaseManager.STATUS_CONNECTED) {
-            console.log(chatId);
             chatRef.child(chatId).child('users').once('value', function (snapshot) {
                 let allPromises = new Array();
-                let result = snapshot.val();
-                for (var userId in result) {
+                let snap = snapshot.val();
+                var result = [];
+                snap.forEach(function(item) {
+                    result.push(item);
+                });
+                result.forEach(function (user) {
                     var innerPromise = new Promise((resolve, reject) => {
-                        userRef.child(userId).once('value', function (snapshot) {
+                        userRef.child(user.id).once('value', function (snapshot) {
                             var resultingObject = snapshot.val();
-                            var userRole = result[userId].role;
                             delete resultingObject['chats'];
-                            resultingObject['role'] = userRole;
-                            console.log(resultingObject);
+                            resultingObject['role'] = user.role;
                             resolve(resultingObject);
                         });
                     });
                     allPromises.push(innerPromise);
-                }
+                });
                 Promise.all(allPromises).then(values => {
+                    console.log('values ' + values);
                     resolve(values);
                 });
             }), function (error) {
-                reject();
+                reject(error);
             }
         } else {
             reject();
@@ -342,10 +350,12 @@ FirebaseManager.prototype.getChatInfo = function (chatId) {
 
 /**
  * Update chat parameters. Used to add new members to the chat, plus to change detail info.
+ * IMPORTANT: this update is a replacement, so every item has to be in.
  * @param chatId
  * @returns {Promise}
  */
 FirebaseManager.prototype.updateChat = function(newChat) {
+    console.log("Updating..");
         var chatRef = this.getChatsRef();
         var userRef = this.getUsersRef();
         var p = new Promise(function (resolve, reject) {
@@ -355,10 +365,10 @@ FirebaseManager.prototype.updateChat = function(newChat) {
                         reject();
                     } else {
                         resolve();
-                        console.log('I am continuing. Update users now...');
                         newChat.users.forEach((currentUser) => {
-                            var chatToInsert = {[newChat.id : newChat.id};
-                            userRef.child(currentUser.id).child('chats').set(newChat);
+                            var chatToInsert = {};
+                            chatToInsert[newChat.id] =  newChat.id;
+                            userRef.child(currentUser.id).child('chats').set(chatToInsert);
                         });
                     }
                 })
@@ -395,6 +405,7 @@ FirebaseManager.prototype.updateUser = function (user) {
 
 /**
  * Delete chat, set a flag which marks it as deleted.
+ * This method does not update users or message and it does not remove completely chat reference.
  * @param chatId
  * @returns {Promise}
  */
@@ -419,33 +430,60 @@ FirebaseManager.prototype.deleteChat = function (chatId) {
 
 /**
  * Remove specific user from a chat.
+ * This cancel reference from both chat object and user object.
  * @param userId
  * @param chatId
  * @returns {Promise}
  */
 FirebaseManager.prototype.removeUser = function (userId, chatId) {
-        var chatRef = this.getChatsRef();
-        var userRef = this.getUsersRef();
-        var p = new Promise(function (resolve, reject) {
-            if (status === FirebaseManager.STATUS_CONNECTED) {
-                chatRef.child(chatId).child("users").child(userId).remove(function (error) {
-                    if (error) {
-                        reject();
-                    } else {
-                        userRef.child(userId).child("chats").child(chatId).remove(function (error) {
-                            if (error) {
-                                reject();
-                            } else {
-                                resolve();
-                            }
-                        });
+    var chatRef = this.getChatsRef();
+    var userRef = this.getUsersRef();
+    var p = new Promise(function (resolve, reject) {
+        if (status === FirebaseManager.STATUS_CONNECTED) {
+            // Remove user ref from chat
+            chatRef.child(chatId).child("users").once('value', function(snapshot) {
+                let snap = snapshot.val();
+                var adminCounter = 0;
+                var isAdmin = false;
+                // Iterate over all users in that chat
+                for (i = 0; i < snap.length; i++) {
+                    let user = snap[i];
+                    if (user.role == 'ADMIN') {
+                        adminCounter++;
+                        if (user.id == userId) {
+                            isAdmin = true;
+                        }
                     }
-                })
-            } else {
-                reject();
-            }
-        });
-        return p;
+                    if (user.id == userId) {
+                        var userIndex = i;
+                    }
+                }
+                // If current user is the only admin, don't let him leave.
+                if (isAdmin && adminCounter == 1) {
+                    reject('Unique admin cannot leave chat');
+                } else {
+                    // Remove
+                    chatRef.child(chatId).child("users").child(userIndex).remove(function (error) {
+                        if (error) {
+                            reject('Cannot remove user from chat.');
+                        } else {
+                        // Remove chat ref from user
+                            userRef.child(userId).child("chats").child(chatId).remove(function (error) {
+                                if (error) {
+                                    reject('Cannot remove chat from user.');
+                                } else {
+                                    resolve();
+                                }
+                            });
+                        }
+                     })
+                }
+            });
+        } else {
+            reject('Firebase not connected');
+        }
+    });
+    return p;
 };
 
 // FIREBASE MANAGEMENT

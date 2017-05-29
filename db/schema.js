@@ -21,20 +21,18 @@ var chatSchema = {
 var messageSchema = {
     "properties": {
         "chat_id": { "type": "string" },
-        "id": { "type": "string" },
-        "sender_name": {
-            "properties": {
-                "full_name": { "type": "string" },
-                "id": { "type": "string" },
-                "img": { "type": "string" }
+        "sender": {
+            "properties" : {
+                "id": { "type":"string" },
+                "name": { "type":"string" }
             },
-            "required": ["full_name", "id", "img"]
+            "required": ["id", "name"]
         },
         "text": { "type": "string" },
         "type": { "type": "string" },
         "time_stamp": { "type": "string" }
     },
-    "required": ["id", "chat_id", "sender_name", "text", "type", "time_stamp"]
+    "required": ["chat_id", "sender", "text", "type", "time_stamp"]
 };
 var userSchema = {
     "properties": {

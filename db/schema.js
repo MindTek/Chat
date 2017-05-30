@@ -18,6 +18,12 @@ var chatSchema = {
     },
     "required": ["type", "img", "name"]
 };
+var chatUpdateSchema = {
+    "properties": {
+        "img": { "type": "string" },
+        "name": { "type": "string" },
+    }
+};
 var messageSchema = {
     "properties": {
         "chat_id": { "type": "string" },
@@ -30,9 +36,8 @@ var messageSchema = {
         },
         "text": { "type": "string" },
         "type": { "type": "string" },
-        "time_stamp": { "type": "string" }
     },
-    "required": ["chat_id", "sender", "text", "type", "time_stamp"]
+    "required": ["chat_id", "sender", "text", "type"]
 };
 var userSchema = {
     "properties": {
@@ -51,6 +56,10 @@ function validateChat(chat) {
     return ajv.validate(chatSchema, chat);
 }
 
+function validateChatUpdate(chat) {
+    return ajv.validate(chatUpdateSchema, chat);
+}
+
 function validateMessage(message) {
     return ajv.validate(messageSchema, message);
 }
@@ -62,5 +71,6 @@ function validateUser(user) {
 module.exports = {
     validateChat: validateChat,
     validateMessage: validateMessage,
-    validateUser: validateUser
+    validateUser: validateUser,
+    validateChatUpdate: validateChatUpdate
 }

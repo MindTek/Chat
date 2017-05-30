@@ -3,14 +3,12 @@ const router = express.Router();
 const schema = require('../db/schema');
 const FirebaseManager = require('../managers/firebase-manager');
 const {logger} = require('../helpers/init');
+const {notification_title, errorHandler, httpCode} = require('../helpers/enum');
 
 /**
- * Creation of a new user, called when a new user is registered.
+ * Creation of a new user, called when a new user is registered after registration.
  * User id is mandatory and it is the one generated during registration.
  * If user id is existing then that user is overwritten.
- * 201 -> created
- * 400 -> bad request
- * 401 -> firebase error
  */
 router.post('/users', function(req, res) {
     var user = req.body;
@@ -18,34 +16,31 @@ router.post('/users', function(req, res) {
     if (schema.validateUser(user)) {
         FirebaseManager.createUser(user)
             .then(function () {
-                res.status(201).send('201');
+                res.sendStatus(httpCode.CREATED);
             })
-            .catch(function () {
-                res.status(401).send('401');
+            .catch(function (error) {
+                res.sendStatus(errorHandler.INTERNAL_SERVER_ERROR);
             });
     } else {
-        res.status(400).send('400');
+        res.sendStatus(errorHandler.BAD_REQUEST);
     }
 });
 
 /**
- * Update user info (name and/or image
- * 200 -> updated
- * 400 -> bad request
- * 401 -> firebase error
+ * Update user info (name and/or image)
  */
 router.put('/users/:userid', function (req, res) {
     var user = req.body;
     if (schema.validateUser(user)) {
         FirebaseManager.updateUser(user)
             .then(function () {
-                res.status(200).send('200');
+                res.sendStatus(httpCode.OK);
             })
-            .catch(function () {
-                res.status(401).send('401');
+            .catch(function (error) {
+                res.sendStatus(errorHandler.INTERNAL_SERVER_ERROR);
             });
     } else {
-        res.status(400).send('400');
+        res.sendStatus(errorHandler.BAD_REQUEST);
     }
 });
 

@@ -4,13 +4,13 @@ const schema = require('../db/schema');
 const FirebaseManager = require('../managers/firebase-manager');
 const {logger} = require('../helpers/init');
 const LoginManager = require('../helpers/communication');
-const {notification_title} = require('../helpers/enum');
+const {notification_title, errorHandler, httpCode} = require('../helpers/enum');
 
 /**
  * Placeholder to show an entry point.
  */
 router.get('/', function(req, res) {
-    res.send('Ciao! Benvenuto nel modulo di chat!');
+    res.send('Welcome into chat!');
 });
 
 /**
@@ -20,68 +20,83 @@ router.get('/', function(req, res) {
  */
 router.post('/chat', function(req, res) {
     var chat = req.body;
-
     if (schema.validateChat(chat)) {
         FirebaseManager.createChat(chat)
             .then(function (chatId) {
                 res.setHeader('Content-Type', 'application/json');
-                res.status(201).send(JSON.stringify({ 'id': chatId }));
+                res.status(httpCode.CREATED).send(JSON.stringify({ 'id': chatId }));
             })
-            .catch(function () {
-                res.sendStatus(400);
+            .catch(function (error) {
+                res.sendStatus(errorHandler.INTERNAL_SERVER_ERROR);
             });
     } else {
-        res.sendStatus(400);
+        res.sendStatus(errorHandler.BAD_REQUEST);
     }
 
 });
 
 /**
- * Update name, image and participants of a specific chat.
- * Id must be passed inside chat object.
- * Participants MUST be passed as an array. Id is required only.
+ * Update name and/or image of a specific chat.
  */
 router.put('/chat/:chatid', function(req, res) {
     var chat = req.body;
-    if (schema.validateChat(chat)) {
+    if (schema.validateChatUpdate(chat)) {
         FirebaseManager.updateChat(chat)
         .then(function () {
-            res.sendStatus(200);
+            res.sendStatus(httpCode.OK);
         })
-        .catch(function () {
-            res.sendStatus(400);
+        .catch(function (error) {
+            res.sendStatus(errorHandler.INTERNAL_SERVER_ERROR);
         });
     } else {
-        res.sendStatus(400);
+        res.sendStatus(errorHandler.BAD_REQUEST);
     }
 
 });
 
+
 /**
- * Add participants to a specific chat. It is valid for group only.
- * Every user added should receive a notification.
+ * Add participants to a specific chat.
+ * This API is used for both single and group chat.
+ * Users will be added as not admin!
+ * Every user added in a group will receive a notification.
  */
 router.put('/chat/:chatid/users/add', function(req, res) {
+    var chatId = req.params.chatid;
     var usersArray = req.body["users"];
-    FirebaseManager.addUser(usersArray, req.params.chatid)
-        .then(function (response) {
-            res.status(200).send(200);
-            LoginManager.getFirebaseToken(usersArray)
-                .then(function(tokens) {
-                    FirebaseManager.sendMessage(tokens, message.sender.name, message.text, {custom: "This is a custom field!"})
-                        .then(function (response) {
-                            console.log('Notification sent');
-                        })
-                        .catch(function (error) {
-                            console.log('Notification not sent');
-                        });
-                })
-                .catch(function(error) {
-                    console.log('Impossible to retrieve tokens');
-                });
+    FirebaseManager.getChatInfo(chatId)
+        .then(function(response) {
+            var chatName = response["name"];
+            if (response["type"] == "GROUP") { //If group then add every user
+                FirebaseManager.addUser(usersArray, chatId)
+                    .then(function () {
+                        res.sendStatus(httpCode.OK);
+                        createAndSendAddedNotification(usersArray, chatName);
+                    })
+                    .catch(function (error) {
+                        res.sendStatus(errorHandler.INTERNAL_SERVER_ERROR);
+                    });
+            } else if (response["type"] == "SINGLE") {
+                if (response["users"].length == 0) {
+                    // Accept two new participants
+                    if (usersArray.length < 2) {
+                        FirebaseManager.addUser(usersArray, chatId)
+                            .then(function () {
+                                res.sendStatus(httpCode.OK);
+                            })
+                            .catch(function (error) {
+                                res.sendStatus(errorHandler.INTERNAL_SERVER_ERROR);
+                            });
+                    } else {
+                        res.sendStatus(errorHandler.BAD_REQUEST);
+                    }
+                } else {
+                    res.sendStatus(errorHandler.BAD_REQUEST);
+                }
+            }
         })
         .catch(function (error) {
-            res.status(404).send(error);
+            res.sendStatus(errorHandler.INTERNAL_SERVER_ERROR);
         });
 });
 
@@ -92,12 +107,13 @@ router.put('/chat/:chatid/users/add', function(req, res) {
 router.post('/chat/:chatid/message', function(req, res) {
     var message = req.body;
     if (schema.validateMessage(message)) {
+        message["timestamp"] = Date.now();
         FirebaseManager.saveMessage(message)
             .then(function (message) {
-                res.status(200).send(message);
+                res.status(201).send(message);
             })
-            .catch(function (errorCode) {
-                res.sendStatus(errorCode);
+            .catch(function (error) {
+                res.sendStatus(error);
             });
         // Get users in chat and send a notification to them.
         FirebaseManager.getChatUsers(req.params.chatid)
@@ -133,8 +149,7 @@ router.post('/chat/:chatid/message', function(req, res) {
                 console.log('Impossible to send notification. ' + error);
             });
     } else {
-        console.log('ada');
-        res.status(400).send('400');
+        res.sendStatus(errorHandler.BAD_REQUEST);
     }
 });
 /**
@@ -143,10 +158,10 @@ router.post('/chat/:chatid/message', function(req, res) {
 router.put('/chat/:chatid/users/:userid/remove', function(req,res) {
     FirebaseManager.removeUser(req.params.userid, req.params.chatid)
         .then(function () {
-            res.status(201).send('201');
+            res.sendStatus(httpCode.OK);
         })
-        .catch(function () {
-            res.status(404).send('404');
+        .catch(function (error) {
+            res.sendStatus(error);
         });
 });
 
@@ -230,5 +245,39 @@ router.get('/chat/:chatid/lastmessage', function(req, res) {
             res.status(404).send('404');
         });
 });
+
+/* HELPERS */
+// TO FIX message
+function createAndSendNotification(usersArray) {
+    LoginManager.getFirebaseToken(usersArray)
+        .then(function (tokens) {
+            FirebaseManager.sendMessage(tokens, message.sender.name, message.text, {custom: "This is a custom field!"})
+                .then(function (response) {
+                    console.log('Notification sent');
+                })
+                .catch(function (error) {
+                    console.log('Notification not sent');
+                });
+        })
+        .catch(function (error) {
+            console.log('Impossible to retrieve tokens');
+        });
+}
+
+function createAndSendAddedNotification(usersArray, groupName) {
+    LoginManager.getFirebaseToken(usersArray)
+        .then(function (tokens) {
+            FirebaseManager.sendMessage(tokens, groupName, notification_title.ADDED, {custom: "This is a custom field!"})
+                .then(function (response) {
+                    console.log('Notification sent');
+                })
+                .catch(function (error) {
+                    console.log('Notification not sent');
+                });
+        })
+        .catch(function (error) {
+            console.log('Impossible to retrieve tokens');
+        });
+}
 
 module.exports = router;

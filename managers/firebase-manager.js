@@ -1,6 +1,6 @@
 const Firebase = require('firebase-admin');
 const Promise = require('promise');
-const logger = require('../helpers/init').logger;
+const {logger} = require('../helpers/init');
 const serviceAccount = require('./../config/serviceAccountKey.json');
 
 var status;
@@ -270,9 +270,8 @@ FirebaseManager.prototype.getChatUsers = function(chatId) {
     var p = new Promise(function (resolve, reject) {
         if (status === FirebaseManager.STATUS_CONNECTED) {
             chatRef.child(chatId).child('users').once('value', function (snapshot) {
-                let allPromises = new Array();
+                var allPromises = new Array();
                 let snap = snapshot.val();
-                logger.info(JSON.stringify(snap));
                 var result = [];
                 for (var userKey in snap) {
                     result.push(snap[userKey]);
@@ -287,19 +286,26 @@ FirebaseManager.prototype.getChatUsers = function(chatId) {
                             delete resultingObject['chats'];
                             resultingObject['role'] = user.role;
                             resolve(resultingObject);
+                            logger.info("TEST2: " + JSON.stringify(resultingObject));
+                        }, function(error) {
+                            logger.info(error);
+                            reject();
                         });
                     });
                     allPromises.push(innerPromise);
                 });
+                logger.info('waiting...');
                 Promise.all(allPromises).then(values => {
-                    logger('values ' + values);
+                    logger.info('All promises resolved!');
                     resolve(values);
+                }).catch(function(error) {
+                    logger.info(error);
                 });
-            }), function (error) {
-                reject(error);
-            }
+            }, function (error) {
+                reject('Not found users on chat.');
+            });
         } else {
-            reject();
+            reject('Firebase not connected.');
         }
     });
     return p;

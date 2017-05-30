@@ -3,7 +3,8 @@ const router = express.Router();
 const schema = require('../db/schema');
 const FirebaseManager = require('../managers/firebase-manager');
 const {logger} = require('../helpers/init');
-const LoginManager = require('../helpers/requests');
+const LoginManager = require('../helpers/communication');
+const {notification_title} = require('../helpers/enum');
 
 /**
  * Placeholder to show an entry point.
@@ -101,11 +102,9 @@ router.post('/chat/:chatid/message', function(req, res) {
         // Get users in chat and send a notification to them.
         FirebaseManager.getChatUsers(req.params.chatid)
             .then(function (users) {
-                var usersInChat = [];
-                console.log('1');
+                let usersInChat = [];
                 users.forEach(function(u) {
                     // Don't send notification to the message sender.
-                    console.log(u);
                     if (u.id == message.sender.id) {
                         return;
                     }
@@ -126,7 +125,7 @@ router.post('/chat/:chatid/message', function(req, res) {
                             });
                     })
                     .catch(function(error) {
-                        console.log('Impossible to retrieve tokens');
+                        console.log('.....Impossible to retrieve tokens ' + error);
                     });
 
             })
@@ -214,8 +213,8 @@ router.delete('/chat/:chatid', function (req,res) {
         .then(function () {
             res.status(201).send('201');
         })
-        .catch(function () {
-            res.status(404).send('404');
+        .catch(function (error) {
+            res.status(404).send(error);
         });
 });
 

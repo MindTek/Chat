@@ -3,6 +3,6 @@ var notification_title = {
     MESSAGE : "New message",
 }
 
-module.exports({
+module.exports = {
    notification_title
-});
+};

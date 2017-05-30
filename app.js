@@ -1,22 +1,12 @@
 /* MAIN */
 const express = require('express');
 const bodyParser = require('body-parser');
-const logger = require('winston');
+const {logger} = require('./helpers/init');
 const app = express();
 const api = require('./routes/api');
 const hook = require('./routes/hook');
 
-/* ENVIRONMENT */
-/*
-var projectName = process.env.MM_PROJECT_NAME;
-var chatDBUrl = process.env.MM_CHAT_DB_URL;
-var chatDBUsername = process.env.MM_CHAT_DB_USERNAME;
-var chatDBPassword = process.env.MM_CHAT_DB_PASSWORD;
-var chatServerPort = process.env.MM_CHAT_SERVER_PORT;
-var development = process.env.MM_CHAT_DEVELOPMENT;
-*/
-
-/* ROUTING AND LOGGING */
+/* ROUTING INIT */
 app.use(bodyParser.json());
 app.use('/api', api);
 app.use('/hook', hook);

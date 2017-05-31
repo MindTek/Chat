@@ -18,6 +18,31 @@ function getFirebaseToken(users, callback) {
     return p;
 }
 
+/**
+ * Validate user token, sending it to login module.
+ */
+function authenticate(token) {
+    var options = {
+        url: 'http://www.modulo-login.com/users/authorization',
+        headers: {
+            'Authorization': token
+        }
+    };
+    var p = new Promise(function(resolve, reject) {
+        request.post(options, function(error, response, body){
+            reject();
+            /*if (error) {
+                reject();
+            } else {
+            let res = response["authorized"];
+                resolve(res);
+            }*/
+        });
+    });
+    return p;
+}
+
 module.exports = {
-    getFirebaseToken
+    getFirebaseToken,
+    authenticate
 };

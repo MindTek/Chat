@@ -266,7 +266,7 @@ FirebaseManager.prototype.getChatUsers = function(chatId) {
                     result.push(snap[userKey]);
                 }
                 result.forEach(function (user) {
-                    var innerPromise = new Promise((resolve, reject) => {
+                    let innerPromise = new Promise((resolve, reject) => {
                         userRef.child(user.id).once('value', function (snapshot) {
                             var resultingObject = snapshot.val();
                             delete resultingObject['chats'];
@@ -408,26 +408,35 @@ FirebaseManager.prototype.addUser = function (users, chatId) {
     var p = new Promise(function (resolve, reject) {
         if (status === FirebaseManager.STATUS_CONNECTED) {
             // Add user ref from chat
+            var allPromises = new Array();
             users.forEach(function(id) {
-                var newUser = {"id": id, "role": "USER"};
-                chatRef.child(chatId).child("users").push(newUser, function(error) {
-                    if (error) {
-                        reject(errorHandler.INTERNAL_SERVER_ERROR);
-                    } else {
-                        // Add chat ref to every users added
-                        var newChat = {};
-                        newChat[chatId] = chatId;
-                        userRef.child(id).child("chats").update(newChat, function(error) {
-                            if (error) {
-                                reject(errorHandler.NOT_FOUND);
-                            } else {
-                                resolve();
-                            }
-                        });
-                    }
+                let innerPromise = new Promise((resolve, reject) => {
+                    userRef.child(id).once('value', function(snapshot) {
+                        let result = snapshot.val();
+                        if (result) { // If user exists
+                            var newUser = {"id": id, "role": "USER"};
+                            chatRef.child(chatId).child("users").push(newUser, function(error) {
+                                // Add chat ref to every users added
+                                var newChat = {};
+                                newChat[chatId] = chatId;
+                                userRef.child(id).child("chats").update(newChat, function(error) {
+                                    resolve();
+                                });
+                            });
+                        } else {
+                            resolve();
+                        }
+                    });
                 });
+                allPromises.push(innerPromise);
+            });
+            Promise.all(allPromises).then(values => {
+                resolve(values);
+            }).catch(function(error) {
+                reject(errorHandler.INTERNAL_SERVER_ERROR);
             });
         } else {
+            console.log('3');
             reject(errorHandler.INTERNAL_SERVER_ERROR);
         }
     });

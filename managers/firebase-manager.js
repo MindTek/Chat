@@ -156,8 +156,6 @@ FirebaseManager.prototype.saveMessage = function (newMessage) {
 
 /**
  * Get all messages of a specific chat.
- * @param chatId
- * @returns {Promise [messages]}
  */
 FirebaseManager.prototype.getAllMessages = function (chatId) {
     var messageRef = this.getMessagesRef();
@@ -173,11 +171,11 @@ FirebaseManager.prototype.getAllMessages = function (chatId) {
                 resolve(messages);
             }), function (error) {
                 if (error) {
-                    reject();
+                    reject(errorHandler.NOT_FOUND);
                 }
             }
         } else {
-            reject(500, error.FIREBASE_ERROR);
+            reject(errorHandler.INTERNAL_SERVER_ERROR);
         }
     });
     return p;
@@ -185,8 +183,6 @@ FirebaseManager.prototype.getAllMessages = function (chatId) {
 
 /**
  * Get last message of a specific chat. Stored into each chat and updated every new message.
- * @param chatId
- * @returns {Promise}
  */
 FirebaseManager.prototype.getLastMessage = function (chatId) {
     var chatRef = this.getChatsRef();
@@ -208,8 +204,6 @@ FirebaseManager.prototype.getLastMessage = function (chatId) {
 };
 
 /** Get list of chats in which an user is participating, except deleted.
- * @param userId
- * @returns {Promise [chats]}
  */
 FirebaseManager.prototype.getChats = function (userId) {
         var userRef = this.getUsersRef();
@@ -218,13 +212,14 @@ FirebaseManager.prototype.getChats = function (userId) {
             if (status === FirebaseManager.STATUS_CONNECTED) {
                 userRef.child(userId).child('chats').once('value', function (snapshot) {
                     var allPromises = new Array();
-                    for (var chatId in snapshot.val()) {
-                        var innerPromise = new Promise((resolve, reject) => {
+                    for (let chatId in snapshot.val()) {
+                        let innerPromise = new Promise((resolve, reject) => {
                             chatRef.orderByKey().equalTo(chatId).once('value', function (snapshot) {
                                 let result = snapshot.val();
                                 //Filter deleted chats
-                                if (result[chatId]['deleted'] != 'true') {
-                                    resolve(snapshot.val());
+                                let chatObj = result[chatId];
+                                if (chatObj['deleted'] != 'true') {
+                                    resolve(result);
                                 } else {
                                     resolve();
                                 }
@@ -233,31 +228,30 @@ FirebaseManager.prototype.getChats = function (userId) {
                         allPromises.push(innerPromise);
                     }
                     Promise.all(allPromises).then(values => {
+                        // Filter empty objects
                         if (typeof(values[0])!='undefined') {
-                            logger(values);
                             resolve(values);
                         } else {
                             resolve([]);
                         }
+                    }).catch(error => {
+                        reject(errorHandler.INTERNAL_SERVER_ERROR);
                     });
                 }), function (error) {
                     if (error) {
-                        reject();
+                        reject(errorHandler.NOT_FOUND);
                     }
                 }
             } else {
-                reject(500, error.FIREBASE_ERROR);
+                reject(errorHandler.INTERNAL_SERVER_ERROR);
             }
         });
         return p;
 };
 
-// NO MORE WORKING
 /**
- * Get users which are participating to a chat.
+ * Get users participating to a chat.
  * NOTE: Returned value only includes id of users. YOU HAVE TO get user info with another query.
- * @param chatId
- * @returns {Promise [users_id]}
  */
 FirebaseManager.prototype.getChatUsers = function(chatId) {
     var chatRef = this.getChatsRef();
@@ -271,9 +265,6 @@ FirebaseManager.prototype.getChatUsers = function(chatId) {
                 for (var userKey in snap) {
                     result.push(snap[userKey]);
                 }
-                /*snap.forEach(function(item) {
-                    result.push(item);
-                });*/
                 result.forEach(function (user) {
                     var innerPromise = new Promise((resolve, reject) => {
                         userRef.child(user.id).once('value', function (snapshot) {
@@ -281,26 +272,22 @@ FirebaseManager.prototype.getChatUsers = function(chatId) {
                             delete resultingObject['chats'];
                             resultingObject['role'] = user.role;
                             resolve(resultingObject);
-                            logger.info("TEST2: " + JSON.stringify(resultingObject));
                         }, function(error) {
-                            logger.info(error);
-                            reject();
+                            reject(errorHandler.NOT_FOUND);
                         });
                     });
                     allPromises.push(innerPromise);
                 });
-                logger.info('waiting...');
                 Promise.all(allPromises).then(values => {
-                    logger.info('All promises resolved!');
                     resolve(values);
                 }).catch(function(error) {
-                    logger.info(error);
+                    reject(errorHandler.INTERNAL_SERVER_ERROR);
                 });
             }, function (error) {
-                reject('Not found users on chat.');
+                reject(errorHandler.NOT_FOUND);
             });
         } else {
-            reject(500, error.FIREBASE_ERROR);
+            reject(errorHandler.INTERNAL_SERVER_ERROR);
         }
     });
     return p;
@@ -308,8 +295,6 @@ FirebaseManager.prototype.getChatUsers = function(chatId) {
 
 /**
  * Get user info (name and/or image).
- * @param userId
- * @returns {Promise}
  */
 FirebaseManager.prototype.getUserInfo = function (userId) {
     var userRef = this.getUsersRef();
@@ -340,11 +325,11 @@ FirebaseManager.prototype.getChatInfo = function (chatId) {
                 resolve(snapshot.val());
             }, function (error) {
                 if (error) {
-                    reject();
+                    reject(errorHandler.NOT_FOUND);
                 }
             });
         } else {
-            reject(500, error.FIREBASE_ERROR);
+            reject(errorHandler.INTERNAL_SERVER_ERROR);
         }
     });
     return p;
@@ -415,8 +400,7 @@ FirebaseManager.prototype.deleteChat = function (chatId) {
 };
 
 /**
- * UPDATE THIS COMMENT
-
+ * Add a new user to chat. Create user under chat ref and insert that chat for each users involved.
  */
 FirebaseManager.prototype.addUser = function (users, chatId) {
     var chatRef = this.getChatsRef();
@@ -426,17 +410,16 @@ FirebaseManager.prototype.addUser = function (users, chatId) {
             // Add user ref from chat
             users.forEach(function(id) {
                 var newUser = {"id": id, "role": "USER"};
-                logger.info(newUser);
                 chatRef.child(chatId).child("users").push(newUser, function(error) {
                     if (error) {
-                        reject("Cannot add user to chat.");
+                        reject(errorHandler.INTERNAL_SERVER_ERROR);
                     } else {
                         // Add chat ref to every users added
                         var newChat = {};
                         newChat[chatId] = chatId;
                         userRef.child(id).child("chats").update(newChat, function(error) {
                             if (error) {
-                                reject("Cannot add chat to user.");
+                                reject(errorHandler.NOT_FOUND);
                             } else {
                                 resolve();
                             }
@@ -445,7 +428,7 @@ FirebaseManager.prototype.addUser = function (users, chatId) {
                 });
             });
         } else {
-            reject(500, error.FIREBASE_ERROR);
+            reject(errorHandler.INTERNAL_SERVER_ERROR);
         }
     });
     return p;

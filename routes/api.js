@@ -168,16 +168,20 @@ router.put('/chat/:chatid/users/:userid/remove', function(req,res) {
 /**
  * Get chats list of specific user.
  * Return an array of chats, with every information, users with role included.
- * NOTE: This method should not return deleted chats.
+ * NOTE: This method will not return deleted chats.
  */
 router.get('/chat/all/user/:userid', function(req,res) {
     FirebaseManager.getChats(req.params.userid)
         .then(function (chats) {
-            console.log(chats);
-            res.status(201).send(chats);
+            res.setHeader('Content-Type', 'application/json');
+            // Filter chats in order to remove empty values (due to deleted chats), returned from Firebase function
+            let filteredChats = chats.filter(function(e) {
+               return e!=null;
+            });
+            res.status(httpCode.OK).send({"chats": filteredChats});
         })
-        .catch(function () {
-            res.status(404).send('404');
+        .catch(function (error) {
+            res.sendStatus(error);
         });
 });
 
@@ -187,49 +191,11 @@ router.get('/chat/all/user/:userid', function(req,res) {
 router.get('/chat/:chatid/message/all', function(req,res) {
     FirebaseManager.getAllMessages(req.params.chatid)
         .then(function (messages) {
-            res.status(201).send(messages);
-        })
-        .catch(function () {
-            res.status(404).send('404');;
-        });
-});
-
-/**
- * Get information and status of a chat.
- */
-router.get('/chat/:chatid', function(req,res) {
-    FirebaseManager.getChatInfo(req.params.chatid)
-        .then(function (info) {
-            res.status(201).send(info);
-        })
-        .catch(function () {
-            res.status(404).send('404');;
-        });
-});
-
-/**
- * Get participants of a chat.
- */
-router.get('/chat/:chatid/user/all', function(req,res) {
-    FirebaseManager.getChatUsers(req.params.chatid)
-        .then(function (users) {
-            res.status(201).send(users);
-        })
-        .catch(function () {
-            res.status(404).send('404');;
-        });
-});
-
-/**
- * Delete chat, set a flag on it.
- */
-router.delete('/chat/:chatid', function (req,res) {
-    FirebaseManager.deleteChat(req.params.chatid)
-        .then(function () {
-            res.status(201).send('201');
+            res.setHeader('Content-Type', 'application/json');
+            res.status(httpCode.OK).send({"messages": messages});
         })
         .catch(function (error) {
-            res.status(404).send(error);
+            res.sendStatus(error);
         });
 });
 
@@ -243,6 +209,47 @@ router.get('/chat/:chatid/lastmessage', function(req, res) {
         })
         .catch(function () {
             res.status(404).send('404');
+        });
+});
+
+/**
+ * Get information and status of a chat.
+ */
+router.get('/chat/:chatid', function(req,res) {
+    FirebaseManager.getChatInfo(req.params.chatid)
+        .then(function (info) {
+            res.setHeader('Content-Type', 'application/json');
+            res.status(httpCode.OK).send(info);
+        })
+        .catch(function (error) {
+            res.sendStatus(error);
+        });
+});
+
+/**
+ * Get participants of a chat.
+ */
+router.get('/chat/:chatid/user/all', function(req,res) {
+    FirebaseManager.getChatUsers(req.params.chatid)
+        .then(function (users) {
+            res.setHeader('Content-Type', 'application/json');
+            res.status(httpCode.OK).send({"users": users});
+        })
+        .catch(function (error) {
+            res.sendStatus(error);
+        });
+});
+
+/**
+ * Delete chat, set a flag on it.
+ */
+router.delete('/chat/:chatid', function (req,res) {
+    FirebaseManager.deleteChat(req.params.chatid)
+        .then(function () {
+            res.status(201).send('201');
+        })
+        .catch(function (error) {
+            res.status(404).send(error);
         });
 });
 

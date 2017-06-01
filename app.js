@@ -10,10 +10,10 @@ const LoginManager = require('./helpers/communication');
 /* ROUTING INIT */
 // Create a middleware to verify authentication
 var authentication = function (req, res, next) {
-    console.log('Authenticating....');
     LoginManager.authenticate(req.header('Authorization'))
-        .then(function(auth) {
-            req.auth = auth;
+        .then(function(response) {
+            req.auth = response.auth;
+            req.sender = response.id;
             next();
         })
         .catch(function(error) {

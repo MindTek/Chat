@@ -4,13 +4,17 @@ const schema = require('../db/schema');
 const FirebaseManager = require('../managers/firebase-manager');
 const {logger} = require('../helpers/init');
 const LoginManager = require('../helpers/communication');
-const {notification_title, errorHandler, httpCode} = require('../helpers/enum');
+const {notification, errorHandler, httpCode} = require('../helpers/enum');
 
 /**
  * Placeholder to show an entry point.
  */
 router.get('/', function(req, res) {
-    res.send('Welcome to this chat!');
+    if (req.auth) {
+        res.send('Welcome to this chat!');
+    } else {
+        res.sendStatus(errorHandler.NOT_AUTHORIZED);
+    }
 });
 
 /**
@@ -142,7 +146,7 @@ router.post('/chat/:chatid/message', function(req, res) {
 
                     LoginManager.getFirebaseToken(usersInChatObject)
                         .then(function(tokens) {
-                            FirebaseManager.sendMessage(tokens, notification_title.MESSAGE, message.text, {custom: "This is a custom field!"})
+                            FirebaseManager.sendMessage(tokens, notification.MESSAGE, message.text, {custom: "This is a custom field!"})
                                 .then(function (response) {
                                     console.log('Notification sent');
                                 })
@@ -279,6 +283,44 @@ router.get('/chat/:chatid/user/all', function(req,res) {
 });
 
 /**
+ * Change status of a participant of a chat.
+ * Operation permitted if and only if sender is admin.
+ */
+router.put('/chat/:chatid/users/:userid/role', function(req,res) {
+    if (req.auth) {
+        var chatId = req.params.chatid;
+        var userIdToUpdate = req.params.userid;
+        let sender = req.sender;
+        FirebaseManager.getUserRoleInChat(sender, chatId)
+            .then(function(senderRole) {
+                if (senderRole == 'USER') { //Users cannot change roles
+                    res.sendStatus(errorHandler.NOT_AUTHORIZED);
+                } else if (senderRole == 'ADMIN' && sender == userIdToUpdate) { //Don't let admin to change himself status.
+                    res.sendStatus(errorHandler.NOT_AUTHORIZED);
+                } else {
+                    FirebaseManager.getUserRoleInChat(userIdToUpdate, chatId)
+                        .then(function(roleToChange) {
+                            var newStatus = (roleToChange == 'USER' ? 'ADMIN' : 'USER');
+                            FirebaseManager.setUserRole(chatId, userIdToUpdate, newStatus)
+                                .then(function (result) {
+                                    res.setHeader('Content-Type', 'application/json');
+                                    res.status(httpCode.OK).send(result);
+                                })
+                                .catch(function (error) {
+                                    res.sendStatus(error);
+                                });
+                        });
+                }
+            })
+            .catch(function (error) {
+               res.sendStatus(errorHandler.INTERNAL_SERVER_ERROR);
+            });
+    } else {
+        res.sendStatus(errorHandler.NOT_AUTHORIZED);
+    }
+});
+
+/**
  * Delete chat, set a flag on it.
  */
 router.delete('/chat/:chatid', function (req,res) {
@@ -295,37 +337,36 @@ router.delete('/chat/:chatid', function (req,res) {
     }
 });
 
-/* HELPERS */
-// TO FIX message
+/* NOTIFICATION HELPERS */
 function createAndSendNotification(usersArray) {
     LoginManager.getFirebaseToken(usersArray)
         .then(function (tokens) {
             FirebaseManager.sendMessage(tokens, message.sender.name, message.text, {custom: "This is a custom field!"})
                 .then(function (response) {
-                    console.log('Notification sent');
+                    logger.info('Notification sent');
                 })
                 .catch(function (error) {
-                    console.log('Notification not sent');
+                    logger.info('Notification not sent');
                 });
         })
         .catch(function (error) {
-            console.log('Impossible to retrieve tokens');
+            logger.info('Impossible to retrieve tokens');
         });
 }
 
 function createAndSendAddedNotification(usersArray, groupName) {
     LoginManager.getFirebaseToken(usersArray)
         .then(function (tokens) {
-            FirebaseManager.sendMessage(tokens, groupName, notification_title.ADDED, {custom: "This is a custom field!"})
+            FirebaseManager.sendMessage(tokens, groupName, notification.ADDED, {custom: "This is a custom field!"})
                 .then(function (response) {
-                    console.log('Notification sent');
+                    logger.info('Notification sent');
                 })
                 .catch(function (error) {
-                    console.log('Notification not sent');
+                    logger.info('Notification not sent');
                 });
         })
         .catch(function (error) {
-            console.log('Impossible to retrieve tokens');
+            logger.info('Impossible to retrieve tokens');
         });
 }
 

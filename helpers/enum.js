@@ -1,6 +1,9 @@
-var notification_title = {
+var notification = {
     ADDED : "You were added to a group.",
     MESSAGE : "New message",
+    NEWUSERADDED : "A new user has been added to this chat",
+    USERREMOVED: "An user has been removed",
+    CHATUPDATED: "Chat has been updated"
 };
 
 var httpCode = {
@@ -19,7 +22,7 @@ var errorHandler = {
 };
 
 module.exports = {
-   notification_title,
+   notification,
     httpCode,
     errorHandler
 };

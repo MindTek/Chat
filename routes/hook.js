@@ -12,7 +12,6 @@ const {notification_title, errorHandler, httpCode} = require('../helpers/enum');
  */
 router.post('/users', function(req, res) {
     var user = req.body;
-    logger(user);
     if (schema.validateUser(user)) {
         FirebaseManager.createUser(user)
             .then(function () {

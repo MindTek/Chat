@@ -147,7 +147,7 @@ FirebaseManager.prototype.saveMessage = function (newMessage) {
     var chatRef = this.getChatsRef();
     chatRef.child(newMessage.chat_id).update(lastMessage, function(error) {
         if (error) {
-            logger('Chat last message not updated!');
+            logger.info('Chat last message not updated!');
         }
     });
     return p;

@@ -7,7 +7,7 @@ const LoginManager = require('../helpers/communication');
 const {notification_title, errorHandler, httpCode} = require('../helpers/enum');
 
 /**
- * Placeholder to show an entry point.
+ * Placeholder to show an entry point.f
  */
 router.get('/', function(req, res) {
     res.send('Welcome into chat!');
@@ -205,7 +205,7 @@ router.get('/chat/:chatid/message/all', function(req,res) {
 router.get('/chat/:chatid/lastmessage', function(req, res) {
     FirebaseManager.getLastMessage(req.params.chatid)
         .then(function (result) {
-            res.status(201).send(result);
+            res.status(200).send(result);
         })
         .catch(function () {
             res.status(404).send('404');

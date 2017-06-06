@@ -60,20 +60,63 @@ FirebaseManager.prototype.sendMessage = function (tokens, notificationTitle, not
 /* API */
 /**
  * Create a new chat, inserting a new node in chat element.
+ * Sender will be added as first admin.
  */
-FirebaseManager.prototype.createChat = function (newChat) {
+FirebaseManager.prototype.createChat = function (newChat, senderId) {
+    var self = this;
     var chatRef = this.getChatsRef();
     var p = new Promise(function (resolve, reject) {
         if (status === FirebaseManager.STATUS_CONNECTED) {
-            var newChatRef = chatRef.push(newChat, function (error) {
-                if (error) {
+            var newChatRef = chatRef.push(newChat);
+            var chatId = newChatRef.key;
+            // Add users as admin
+            self.addAdminUser(senderId, chatId)
+                .then(function(result) {
+                    resolve(chatId);
+                })
+                .catch(function(error) {
                     reject(error);
+                });
+        } else {
+            reject(errorHandler.INTERNAL_SERVER_ERROR);
+        }
+    });
+    return p;
+};
+
+/**
+ * Add admins when chat is created.
+ */
+FirebaseManager.prototype.addAdminUser = function (userId, chatId) {
+    console.log('adding user..');
+    var chatRef = this.getChatsRef();
+    var userRef = this.getUsersRef();
+    var p = new Promise(function (resolve, reject) {
+        if (status === FirebaseManager.STATUS_CONNECTED) {
+            // Add user ref from chat
+            let newAdminUser = {"id": userId, "role": "ADMIN"};
+            console.log('1' + chatId);
+            console.log('2' + userId);
+            chatRef.child(chatId).child('users').child(userId).set(newAdminUser, function(error) {
+                console.log('chat ref');
+                if (error) {
+                    reject(errorHandler.INTERNAL_SERVER_ERROR);
+                } else {
+                    // Update user ref
+                    var newChat = {};
+                    newChat[chatId] = chatId;
+                    userRef.child(userId).child("chats").update(newChat, function(error) {
+                        if (error) {
+                            console.log('user ref');
+                            reject(errorHandler.INTERNAL_SERVER_ERROR);
+                        } else {
+                            resolve(httpCode.OK);
+                        }
+                    });
                 }
             });
-            var chatId = newChatRef.key;
-            resolve(chatId);
         } else {
-            reject(500, error.FIREBASE_ERROR);
+            reject(errorHandler.INTERNAL_SERVER_ERROR);
         }
     });
     return p;
@@ -83,16 +126,16 @@ FirebaseManager.prototype.createChat = function (newChat) {
  * Create a new user entry inside users node.
  */
 FirebaseManager.prototype.createUser = function (newUser) {
-    var userRef = this.getUsersRef();
+    let userRef = this.getUsersRef();
     var p = new Promise(function (resolve, reject) {
         if (status === FirebaseManager.STATUS_CONNECTED) {
-            userRef.child(newUser.id).set(newUser, function (error) {
-                if (error) {
+            userRef.child(newUser.id).set(newUser)
+                .then(function() {
+                    resolve(httpCode.OK);
+                })
+                .catch(function() {
                     reject(errorHandler.INTERNAL_SERVER_ERROR);
-                } else {
-                    resolve();
-                }
-            })
+                });
         } else {
             reject(errorHandler.INTERNAL_SERVER_ERROR);
         }
@@ -351,13 +394,13 @@ FirebaseManager.prototype.updateUser = function (user) {
     var userRef = this.getUsersRef();
     var p = new Promise(function (resolve, reject) {
         if (status === FirebaseManager.STATUS_CONNECTED) {
-            userRef.child(user.id).update(user, function (error) {
-                if (error) {
+            userRef.child(user.id).update(user)
+                .then(function() {
+                    resolve(httpCode.OK);
+                })
+                .catch(function(error) {
                     reject(errorHandler.INTERNAL_SERVER_ERROR);
-                } else {
-                    resolve();
-                }
-            })
+                });
         } else {
             reject(errorHandler.INTERNAL_SERVER_ERROR);
         }

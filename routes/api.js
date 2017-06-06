@@ -10,11 +10,7 @@ const {notification, errorHandler, httpCode} = require('../helpers/enum');
  * Placeholder to show an entry point.
  */
 router.get('/', function(req, res) {
-    if (req.auth) {
-        res.send('Welcome to this chat!');
-    } else {
-        res.sendStatus(errorHandler.NOT_AUTHORIZED);
-    }
+    res.send('Welcome to this chat!');
 });
 
 /**
@@ -25,14 +21,15 @@ router.get('/', function(req, res) {
 router.post('/chat', function(req, res) {
     if (req.auth) {
         var chat = req.body;
+        var sender = req.sender;
         if (schema.validateChat(chat)) {
-            FirebaseManager.createChat(chat)
-                .then(function (chatId) {
+            FirebaseManager.createChat(chat, sender)
+                .then((chatId) => {
                     res.setHeader('Content-Type', 'application/json');
                     res.status(httpCode.CREATED).send(JSON.stringify({ 'id': chatId }));
                 })
-                .catch(function (error) {
-                    res.sendStatus(errorHandler.INTERNAL_SERVER_ERROR);
+                .catch((error) => {
+                    res.sendStatus(error);
                 });
         } else {
             res.sendStatus(errorHandler.BAD_REQUEST);
@@ -50,11 +47,11 @@ router.put('/chat/:chatid', function(req, res) {
         var chat = req.body;
         if (schema.validateChatUpdate(chat)) {
             FirebaseManager.updateChat(chat)
-                .then(function () {
-                    res.sendStatus(httpCode.OK);
+                .then((result) => {
+                    res.sendStatus(result);
                 })
-                .catch(function (error) {
-                    res.sendStatus(errorHandler.INTERNAL_SERVER_ERROR);
+                .catch((error) => {
+                    res.sendStatus(error);
                 });
         } else {
             res.sendStatus(errorHandler.BAD_REQUEST);

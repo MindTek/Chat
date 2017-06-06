@@ -2,8 +2,7 @@ const express = require('express');
 const router = express.Router();
 const schema = require('../db/schema');
 const FirebaseManager = require('../managers/firebase-manager');
-const {logger} = require('../helpers/init');
-const {notification_title, errorHandler, httpCode} = require('../helpers/enum');
+const {errorHandler} = require('../helpers/enum');
 
 /**
  * Creation of a new user, called when a new user is registered after registration.

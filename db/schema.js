@@ -73,4 +73,4 @@ module.exports = {
     validateMessage: validateMessage,
     validateUser: validateUser,
     validateChatUpdate: validateChatUpdate
-}
+};

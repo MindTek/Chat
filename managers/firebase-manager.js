@@ -2,8 +2,7 @@ const Firebase = require('firebase-admin');
 const Promise = require('promise');
 const {logger} = require('../helpers/init');
 const serviceAccount = require('./../config/serviceAccountKey.json');
-const {notification_title, errorHandler, httpCode} = require('../helpers/enum');
-
+const {notification, errorHandler, httpCode} = require('../helpers/enum');
 
 var status;
 var firebaseConfig;
@@ -19,22 +18,11 @@ var FirebaseManager = function () {
         status = FirebaseManager.STATUS_ERROR;
     }
 };
-
-/**
- * @returns The already generated firebase config, may be undefined if FirebaseManager.prototype.buildFirebaseConfigOrThrow
- * has not been called or has thrown an exception. (It's called by default in the constructor)
- */
 FirebaseManager.prototype.getFirebaseConfig = function () {
     return firebaseConfig;
 };
 
 /* NOTIFICATIONS */
-/**
- * Send push notifications to all the given tokens with the given payload
- * @param tokens The tokens (array of strings or a single string) of the device to send the notification to
- * @param payload The content of the notification
- *        (https://firebase.google.com/docs/cloud-messaging/admin/send-messages#define_the_message_payload)
- */
 FirebaseManager.prototype.sendMessage = function (tokens, payload) {
     switch (status) {
         case FirebaseManager.STATUS_CONNECTED:
@@ -48,14 +36,6 @@ FirebaseManager.prototype.sendMessage = function (tokens, payload) {
             break
     }
 };
-
-/**
- * Send push notifications to all the given tokens with the given params
- * @param tokens The tokens (array of strings or a single string) of the device to send the notification to
- * @param notificationTitle The notification title
- * @param notificationBody The notification message
- * @param customData The custom data
- */
 FirebaseManager.prototype.sendMessage = function (tokens, notificationTitle, notificationBody, customData) {
 
     if (status === FirebaseManager.STATUS_CONNECTED) {
@@ -80,20 +60,63 @@ FirebaseManager.prototype.sendMessage = function (tokens, notificationTitle, not
 /* API */
 /**
  * Create a new chat, inserting a new node in chat element.
+ * Sender will be added as first admin.
  */
-FirebaseManager.prototype.createChat = function (newChat) {
+FirebaseManager.prototype.createChat = function (newChat, senderId) {
+    var self = this;
     var chatRef = this.getChatsRef();
     var p = new Promise(function (resolve, reject) {
         if (status === FirebaseManager.STATUS_CONNECTED) {
-            var newChatRef = chatRef.push(newChat, function (error) {
-                if (error) {
+            var newChatRef = chatRef.push(newChat);
+            var chatId = newChatRef.key;
+            // Add users as admin
+            self.addAdminUser(senderId, chatId)
+                .then(function(result) {
+                    resolve(chatId);
+                })
+                .catch(function(error) {
                     reject(error);
+                });
+        } else {
+            reject(errorHandler.INTERNAL_SERVER_ERROR);
+        }
+    });
+    return p;
+};
+
+/**
+ * Add admins when chat is created.
+ */
+FirebaseManager.prototype.addAdminUser = function (userId, chatId) {
+    console.log('adding user..');
+    var chatRef = this.getChatsRef();
+    var userRef = this.getUsersRef();
+    var p = new Promise(function (resolve, reject) {
+        if (status === FirebaseManager.STATUS_CONNECTED) {
+            // Add user ref from chat
+            let newAdminUser = {"id": userId, "role": "ADMIN"};
+            console.log('1' + chatId);
+            console.log('2' + userId);
+            chatRef.child(chatId).child('users').child(userId).set(newAdminUser, function(error) {
+                console.log('chat ref');
+                if (error) {
+                    reject(errorHandler.INTERNAL_SERVER_ERROR);
+                } else {
+                    // Update user ref
+                    var newChat = {};
+                    newChat[chatId] = chatId;
+                    userRef.child(userId).child("chats").update(newChat, function(error) {
+                        if (error) {
+                            console.log('user ref');
+                            reject(errorHandler.INTERNAL_SERVER_ERROR);
+                        } else {
+                            resolve(httpCode.OK);
+                        }
+                    });
                 }
             });
-            var chatId = newChatRef.key;
-            resolve(chatId);
         } else {
-            reject(500, error.FIREBASE_ERROR);
+            reject(errorHandler.INTERNAL_SERVER_ERROR);
         }
     });
     return p;
@@ -101,20 +124,18 @@ FirebaseManager.prototype.createChat = function (newChat) {
 
 /**
  * Create a new user entry inside users node.
- * @param newUser
- * @returns {Promise}
  */
 FirebaseManager.prototype.createUser = function (newUser) {
-    var userRef = this.getUsersRef();
+    let userRef = this.getUsersRef();
     var p = new Promise(function (resolve, reject) {
         if (status === FirebaseManager.STATUS_CONNECTED) {
-            userRef.child(newUser.id).set(newUser, function (error) {
-                if (error) {
+            userRef.child(newUser.id).set(newUser)
+                .then(function() {
+                    resolve(httpCode.OK);
+                })
+                .catch(function() {
                     reject(errorHandler.INTERNAL_SERVER_ERROR);
-                } else {
-                    resolve();
-                }
-            })
+                });
         } else {
             reject(errorHandler.INTERNAL_SERVER_ERROR);
         }
@@ -126,6 +147,7 @@ FirebaseManager.prototype.createUser = function (newUser) {
  * Post a new message to a specific chat.
  * It creates a new entry inside message node.
  * Update chat with latest message.
+ * Notification is not sent here.
  */
 FirebaseManager.prototype.saveMessage = function (newMessage) {
     var messageRef = this.getMessagesRef();
@@ -266,7 +288,7 @@ FirebaseManager.prototype.getChatUsers = function(chatId) {
                     result.push(snap[userKey]);
                 }
                 result.forEach(function (user) {
-                    var innerPromise = new Promise((resolve, reject) => {
+                    let innerPromise = new Promise((resolve, reject) => {
                         userRef.child(user.id).once('value', function (snapshot) {
                             var resultingObject = snapshot.val();
                             delete resultingObject['chats'];
@@ -339,6 +361,7 @@ FirebaseManager.prototype.getChatInfo = function (chatId) {
  * Update chat parameters. Used to change details.
  */
 FirebaseManager.prototype.updateChat = function(newChat) {
+    var self = this;
     var chatRef = this.getChatsRef();
     var p = new Promise(function (resolve, reject) {
         if (status === FirebaseManager.STATUS_CONNECTED) {
@@ -346,6 +369,14 @@ FirebaseManager.prototype.updateChat = function(newChat) {
                 if (error) {
                     reject(errorHandler.INTERNAL_SERVER_ERROR);
                 }
+                let newMessage =
+                    {
+                        "chat_id": newChat.id,
+                        "sender": "SYSTEM",
+                        "text": notification.CHATUPDATED,
+                        "type": "INFO"
+                    };
+                self.saveMessage(newMessage);
                 resolve();
             })
         } else {
@@ -363,13 +394,13 @@ FirebaseManager.prototype.updateUser = function (user) {
     var userRef = this.getUsersRef();
     var p = new Promise(function (resolve, reject) {
         if (status === FirebaseManager.STATUS_CONNECTED) {
-            userRef.child(user.id).update(user, function (error) {
-                if (error) {
+            userRef.child(user.id).update(user)
+                .then(function() {
+                    resolve(httpCode.OK);
+                })
+                .catch(function(error) {
                     reject(errorHandler.INTERNAL_SERVER_ERROR);
-                } else {
-                    resolve();
-                }
-            })
+                });
         } else {
             reject(errorHandler.INTERNAL_SERVER_ERROR);
         }
@@ -403,29 +434,93 @@ FirebaseManager.prototype.deleteChat = function (chatId) {
  * Add a new user to chat. Create user under chat ref and insert that chat for each users involved.
  */
 FirebaseManager.prototype.addUser = function (users, chatId) {
+    var self = this;
     var chatRef = this.getChatsRef();
     var userRef = this.getUsersRef();
     var p = new Promise(function (resolve, reject) {
         if (status === FirebaseManager.STATUS_CONNECTED) {
             // Add user ref from chat
+            var allPromises = new Array();
             users.forEach(function(id) {
-                var newUser = {"id": id, "role": "USER"};
-                chatRef.child(chatId).child("users").push(newUser, function(error) {
-                    if (error) {
-                        reject(errorHandler.INTERNAL_SERVER_ERROR);
-                    } else {
-                        // Add chat ref to every users added
-                        var newChat = {};
-                        newChat[chatId] = chatId;
-                        userRef.child(id).child("chats").update(newChat, function(error) {
-                            if (error) {
-                                reject(errorHandler.NOT_FOUND);
-                            } else {
+                let innerPromise = new Promise((resolve, reject) => {
+                    userRef.child(id).once('value', function(snapshot) {
+                        let result = snapshot.val();
+                        if (result) { // If user has been already created
+                            // Check that user is not already participating to chat
+                            chatRef.child(chatId).child("users").child(id).once('value', function(snapshot) {
+                                if (snapshot.val() == null) { //not found
+                                    let newUser = {};
+                                    newUser[id] = {"id": id, "role": "USER"};
+                                    chatRef.child(chatId).child("users").update(newUser, function(error) {
+                                        // Add chat ref to every users added
+                                        var newChat = {};
+                                        newChat[chatId] = chatId;
+                                        userRef.child(id).child("chats").update(newChat, function(error) {
+                                            // Add message to chat history
+                                            let newMessage =
+                                                {
+                                                    "chat_id": chatId,
+                                                    "sender": "SYSTEM",
+                                                    "text": notification.NEWUSERADDED,
+                                                    "type": "INFO"
+                                                };
+                                            self.saveMessage(newMessage);
+                                        });
+                                    });
+                                }
                                 resolve();
-                            }
-                        });
-                    }
+                            }, function(error) {
+                                reject(errorHandler.INTERNAL_SERVER_ERROR);
+                            });
+                        } else {
+                            // Resolve promise passing empty users
+                            resolve();
+                        }
+                    });
                 });
+                allPromises.push(innerPromise);
+            });
+            Promise.all(allPromises).then(values => {
+                resolve(values);
+            }).catch(function(error) {
+                reject(errorHandler.INTERNAL_SERVER_ERROR);
+            });
+        } else {
+            reject(errorHandler.INTERNAL_SERVER_ERROR);
+        }
+    });
+    return p;
+};
+
+FirebaseManager.prototype.getUserRoleInChat = function(userId, chatId) {
+    var chatRef = this.getChatsRef();
+    var p = new Promise(function(resolve, reject) {
+       if (status === FirebaseManager.STATUS_CONNECTED) {
+           chatRef.child(chatId).child('users').child(userId).once('value', function(snapshot) {
+               let result = snapshot.val();
+               console.log(JSON.stringify(result));
+               resolve(result['role']);
+           }, function(error) {
+               reject(errorHandler.INTERNAL_SERVER_ERROR);
+           })
+       } else {
+           reject(errorHandler.INTERNAL_SERVER_ERROR);
+       }
+    });
+    return p;
+};
+
+FirebaseManager.prototype.setUserRole = function(chatId, userId, newStatus) {
+    var chatRef = this.getChatsRef();
+    var p = new Promise(function(resolve, reject) {
+        if (status === FirebaseManager.STATUS_CONNECTED) {
+            let updatedStatus = {'id':userId, 'role': newStatus};
+            chatRef.child(chatId).child('users').child(userId).update(updatedStatus, function(error) {
+                if (error) {
+                    reject(errorHandler.INTERNAL_SERVER_ERROR);
+                } else {
+                    resolve(updatedStatus);
+                }
             });
         } else {
             reject(errorHandler.INTERNAL_SERVER_ERROR);
@@ -436,9 +531,10 @@ FirebaseManager.prototype.addUser = function (users, chatId) {
 
 /**
  * Remove specific user from a chat.
- * This cancel reference from both chat object and user object.
+ * This cancels reference from both chat object and user object.
  */
 FirebaseManager.prototype.removeUser = function (userId, chatId) {
+    var self = this;
     var chatRef = this.getChatsRef();
     var userRef = this.getUsersRef();
     var p = new Promise(function (resolve, reject) {
@@ -457,9 +553,6 @@ FirebaseManager.prototype.removeUser = function (userId, chatId) {
                             isAdmin = true;
                         }
                     }
-                    if (user.id == userId) {
-                        var userIndex = i;
-                    }
                 }
                 // If current user is the only admin, don't let him leave.
                 if (isAdmin && adminCounter == 1) {
@@ -467,7 +560,7 @@ FirebaseManager.prototype.removeUser = function (userId, chatId) {
                     reject(errorHandler.NOT_ACCEPTABLE);
                 } else {
                     // Remove
-                    chatRef.child(chatId).child("users").child(userIndex).remove(function (error) {
+                    chatRef.child(chatId).child("users").child(userId).remove(function (error) {
                         if (error) {
                             logger.info('Cannot remove user from chat.');
                             reject(errorHandler.INTERNAL_SERVER_ERROR);
@@ -478,6 +571,15 @@ FirebaseManager.prototype.removeUser = function (userId, chatId) {
                                     logger.info('Cannot remove chat from user.');
                                     reject(errorHandler.INTERNAL_SERVER_ERROR);
                                 } else {
+                                    // Add message to chat history
+                                    let newMessage =
+                                        {
+                                            "chat_id": chatId,
+                                            "sender": "SYSTEM",
+                                            "text": notification.USERREMOVED,
+                                            "type": "INFO"
+                                        };
+                                    self.saveMessage(newMessage);
                                     resolve();
                                 }
                             });
@@ -492,122 +594,62 @@ FirebaseManager.prototype.removeUser = function (userId, chatId) {
     return p;
 };
 
-// FIREBASE MANAGEMENT
-/**
- * Get the last generated error
- * @returns The last generated error
- */
+/* FIREBASE CONFIGURATION */
 FirebaseManager.prototype.getError = function () {
     return error;
 };
-
-/**
- * @returns {boolean} the manager is connected correctly to firebase and no error has occurred
- */
 FirebaseManager.prototype.isConnected = function () {
     return status === FirebaseManager.STATUS_CONNECTED && !this.getError();
 };
-
-/**
- * @returns The firebase app, use this to do manually firebase options, be careful
- */
 FirebaseManager.prototype.getFirebaseApp = function () {
     return firebaseApp;
 };
-
-/**
- * This is a utility method that returns the messages root reference
- * @returns {*|admin.database.Reference}
- */
-FirebaseManager.prototype.getChatsRef = function () {
-    return this.getFirebaseApp().database().ref("/chats/");
-};
-
-/**
- * This is a utility method that returns the messages root reference
- * @returns {*|admin.database.Reference}
- */
-FirebaseManager.prototype.getMessagesRef = function () {
-    return this.getFirebaseApp().database().ref("/messages/");
-};
-
-/**
- * This is a utility method that returns the messages root reference
- * @returns {*|admin.database.Reference}
- */
-FirebaseManager.prototype.getUsersRef = function () {
-    return this.getFirebaseApp().database().ref("/users/");
-};
-
-/**
- * This method builds a configuration and initialize the firebase application
- * @throws An error if some required firebase credentials are missing
- */
 var connectToFirebase = function () {
     // Build admin config
     firebaseConfig = buildFirebaseConfigOrThrow();
     firebaseApp = Firebase.initializeApp(firebaseConfig);
 };
-
-/**
- * This method build the firebase configuration from the environment variables listed in the README.md file
- * @returns generated firebase configuration
- * @throws An error if some required firebase credentials are missing
- */
+// Builds the firebase configuration from the environment variables listed in the README.md file
 var buildFirebaseConfigOrThrow = function () {
     var missingParams = "";
-
     // Check missing params
     if (!serviceAccount) {
         missingParams += "serviceAccountFile ";
     }
-
     if (!serviceAccount.type) {
         missingParams += "type ";
     }
-
     if (!serviceAccount.project_id) {
         missingParams += "project_id ";
     }
-
     if (!serviceAccount.private_key_id) {
         missingParams += "private_key_id ";
     }
-
     if (!serviceAccount.private_key) {
         missingParams += "private_key ";
     }
-
     if (!serviceAccount.client_email) {
         missingParams += "client_email ";
     }
-
     if (!serviceAccount.client_id) {
         missingParams += "client_id ";
     }
-
     if (!serviceAccount.auth_uri) {
         missingParams += "auth_uri ";
     }
-
     if (!serviceAccount.token_uri) {
         missingParams += "token_uri ";
     }
-
     if (!serviceAccount.auth_provider_x509_cert_url) {
         missingParams += "auth_provider_x509_cert_url ";
     }
-
     if (!serviceAccount.client_x509_cert_url) {
         missingParams += "client_x509_cert_url ";
     }
-
     if (missingParams !== "") {
-
         // Something is missing! Throw new error
         throw new Error("Missing " + missingParams + "for firebase config, check the environment variables");
     } else {
-
         // No missing params, return the firebase configuration
         return {
             credential: Firebase.credential.cert(serviceAccount),
@@ -619,21 +661,20 @@ var buildFirebaseConfigOrThrow = function () {
     }
 };
 
+/* FIREBASE ROOT REFERENCE */
+FirebaseManager.prototype.getChatsRef = function () {
+    return this.getFirebaseApp().database().ref("/chats/");
+};
+FirebaseManager.prototype.getMessagesRef = function () {
+    return this.getFirebaseApp().database().ref("/messages/");
+};
+FirebaseManager.prototype.getUsersRef = function () {
+    return this.getFirebaseApp().database().ref("/users/");
+};
 
-/**
- * This is a state representing that this manager instance has not been connected to firebase yet (Constructor)
- * @type {number}
- */
+/* FIREBASE STATES */
 FirebaseManager.STATUS_NOT_CONNECTED = 0;
-/**
- * This is a state representing that this manager instance is correctly connected to firebase
- * @type {number}
- */
 FirebaseManager.STATUS_CONNECTED = 1;
-/**
- * This is a state representing that this manager instance has encountered an error connecting to firebase
- * @type {number}
- */
 FirebaseManager.STATUS_ERROR = -1;
 
 /* FIREBASE MANAGER */

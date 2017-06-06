@@ -11,14 +11,14 @@ const {notification_title, errorHandler, httpCode} = require('../helpers/enum');
  * If user id is existing then that user is overwritten.
  */
 router.post('/users', function(req, res) {
-    var user = req.body;
+    let user = req.body;
     if (schema.validateUser(user)) {
         FirebaseManager.createUser(user)
-            .then(function () {
-                res.sendStatus(httpCode.CREATED);
+            .then(result => {
+                res.sendStatus(result);
             })
-            .catch(function (error) {
-                res.sendStatus(errorHandler.INTERNAL_SERVER_ERROR);
+            .catch(error => {
+                res.sendStatus(error);
             });
     } else {
         res.sendStatus(errorHandler.BAD_REQUEST);
@@ -29,14 +29,14 @@ router.post('/users', function(req, res) {
  * Update user info (name and/or image)
  */
 router.put('/users/:userid', function (req, res) {
-    var user = req.body;
+    let user = req.body;
     if (schema.validateUser(user)) {
         FirebaseManager.updateUser(user)
-            .then(function () {
-                res.sendStatus(httpCode.OK);
+            .then(result => {
+                res.sendStatus(result);
             })
-            .catch(function (error) {
-                res.sendStatus(errorHandler.INTERNAL_SERVER_ERROR);
+            .catch(error => {
+                res.sendStatus(error);
             });
     } else {
         res.sendStatus(errorHandler.BAD_REQUEST);

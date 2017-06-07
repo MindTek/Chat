@@ -10,7 +10,6 @@ var firebaseApp;
 var error;
 
 var FirebaseManager = function () {
-    // Initialize firebase app
     try {
         connectToFirebase();
         status = FirebaseManager.STATUS_CONNECTED;
@@ -51,7 +50,7 @@ FirebaseManager.prototype.sendMessage = function (tokens, notificationTitle, not
         if (error) {
             throw error;
         } else {
-            this.error = new Error("Cannot send messages, the firebase app is not connected");
+            this.error = new Error("Cannot send messages, firebase not connected");
             throw this.error;
         }
     }
@@ -95,10 +94,7 @@ FirebaseManager.prototype.addAdminUser = function (userId, chatId) {
         if (status === FirebaseManager.STATUS_CONNECTED) {
             // Add user ref from chat
             let newAdminUser = {"id": userId, "role": "ADMIN"};
-            console.log('1' + chatId);
-            console.log('2' + userId);
             chatRef.child(chatId).child('users').child(userId).set(newAdminUser, function(error) {
-                console.log('chat ref');
                 if (error) {
                     reject(errorHandler.INTERNAL_SERVER_ERROR);
                 } else {
@@ -107,7 +103,6 @@ FirebaseManager.prototype.addAdminUser = function (userId, chatId) {
                     newChat[chatId] = chatId;
                     userRef.child(userId).child("chats").update(newChat, function(error) {
                         if (error) {
-                            console.log('user ref');
                             reject(errorHandler.INTERNAL_SERVER_ERROR);
                         } else {
                             resolve(httpCode.OK);
@@ -205,19 +200,21 @@ FirebaseManager.prototype.getAllMessages = function (chatId) {
     var messageRef = this.getMessagesRef();
     var p = new Promise(function (resolve, reject) {
         if (status === FirebaseManager.STATUS_CONNECTED) {
-            messageRef.orderByChild('chat_id').equalTo(chatId).once('value', function (snapshot) {
-                var messages = new Array();
-                var result = snapshot.val();
-                // Build array for client
-                for (var mess in result) {
-                    messages.push(result[mess]);
-                }
-                resolve(messages);
-            }), function (error) {
-                if (error) {
-                    reject(errorHandler.NOT_FOUND);
-                }
-            }
+            messageRef.orderByChild('chat_id').equalTo(chatId).once('value')
+                .then(function (snapshot) {
+                    var messages = new Array();
+                    var result = snapshot.val();
+                    // Build array for client
+                    for (var mess in result) {
+                        messages.push(result[mess]);
+                    }
+                    resolve(messages);
+                })
+                 .catch(function (error) {
+                    if (error) {
+                        reject(errorHandler.NOT_FOUND);
+                    }
+                });
         } else {
             reject(errorHandler.INTERNAL_SERVER_ERROR);
         }

@@ -1,4 +1,4 @@
-const {logger} = require('../helpers/init');
+const logger = require('winston');
 const request = require('request');
 
 function getFirebaseToken(users, callback) {

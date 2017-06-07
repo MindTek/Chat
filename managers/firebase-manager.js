@@ -1,6 +1,6 @@
 const Firebase = require('firebase-admin');
 const Promise = require('promise');
-const {logger} = require('../helpers/init');
+const logger = require('winston');
 const serviceAccount = require('./../config/serviceAccountKey.json');
 const {notification, errorHandler, httpCode} = require('../helpers/enum');
 
@@ -130,6 +130,28 @@ FirebaseManager.prototype.createUser = function (newUser) {
     var p = new Promise(function (resolve, reject) {
         if (status === FirebaseManager.STATUS_CONNECTED) {
             userRef.child(newUser.id).set(newUser)
+                .then(function() {
+                    resolve(httpCode.OK);
+                })
+                .catch(function() {
+                    reject(errorHandler.INTERNAL_SERVER_ERROR);
+                });
+        } else {
+            reject(errorHandler.INTERNAL_SERVER_ERROR);
+        }
+    });
+    return p;
+};
+
+/**
+ * Update an user (name and/or image).
+ * It updates only element inside user node.
+ */
+FirebaseManager.prototype.updateUser = function (user) {
+    var userRef = this.getUsersRef();
+    var p = new Promise(function (resolve, reject) {
+        if (status === FirebaseManager.STATUS_CONNECTED) {
+            userRef.child(user.id).update(user)
                 .then(function() {
                     resolve(httpCode.OK);
                 })
@@ -379,28 +401,6 @@ FirebaseManager.prototype.updateChat = function(newChat) {
                 self.saveMessage(newMessage);
                 resolve();
             })
-        } else {
-            reject(errorHandler.INTERNAL_SERVER_ERROR);
-        }
-    });
-    return p;
-};
-
-/**
- * Update an user (name and/or image).
- * It updates only element inside user node.
- */
-FirebaseManager.prototype.updateUser = function (user) {
-    var userRef = this.getUsersRef();
-    var p = new Promise(function (resolve, reject) {
-        if (status === FirebaseManager.STATUS_CONNECTED) {
-            userRef.child(user.id).update(user)
-                .then(function() {
-                    resolve(httpCode.OK);
-                })
-                .catch(function(error) {
-                    reject(errorHandler.INTERNAL_SERVER_ERROR);
-                });
         } else {
             reject(errorHandler.INTERNAL_SERVER_ERROR);
         }

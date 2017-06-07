@@ -1,7 +1,7 @@
 /* MAIN */
 const express = require('express');
 const bodyParser = require('body-parser');
-const {logger} = require('./helpers/init');
+const logger = require('winston');
 const app = express();
 const api = require('./routes/api');
 const hook = require('./routes/hook');
@@ -27,5 +27,5 @@ app.use(bodyParser.json());
 app.use('/api', api);
 app.use('/hook', hook);
 app.listen(port, function () {
-  logger.info('Listening on port ' + port +'...');
+  logger.info('Web server started!');
 });

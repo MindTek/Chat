@@ -2,12 +2,12 @@ const express = require('express');
 const router = express.Router();
 const schema = require('../db/schema');
 const FirebaseManager = require('../managers/firebase-manager');
-const {logger} = require('../helpers/init');
+const logger = require('winston');
 const LoginManager = require('../helpers/communication');
 const {notification, errorHandler, httpCode} = require('../helpers/enum');
 
 /**
- * Placeholder to show an entry point.f
+ * Placeholder to show an entry point.
  */
 router.get('/', function(req, res) {
     res.send('Welcome to this chat!');

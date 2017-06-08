@@ -23,16 +23,18 @@ router.post('/chat', function(req, res) {
         var chat = req.body;
         var sender = req.sender;
         if (schema.validateChat(chat)) {
-            FirebaseManager.createChat(chat, sender)
-                .then((chatId) => {
-                    res.setHeader('Content-Type', 'application/json');
-                    res.status(httpCode.CREATED).send(JSON.stringify({ 'id': chatId }));
-                })
-                .catch((error) => {
-                    res.sendStatus(error);
-                });
-        } else {
-            res.sendStatus(errorHandler.BAD_REQUEST);
+            if (schema.validateChat(chat)) {
+                FirebaseManager.createChat(chat, sender)
+                    .then((chatId) => {
+                        res.setHeader('Content-Type', 'application/json');
+                        res.status(httpCode.CREATED).send(JSON.stringify({'id': chatId}));
+                    })
+                    .catch((error) => {
+                        res.sendStatus(error);
+                    });
+            } else {
+                res.sendStatus(errorHandler.BAD_REQUEST);
+            }
         }
     } else {
         res.sendStatus(errorHandler.NOT_AUTHORIZED);
@@ -46,7 +48,7 @@ router.put('/chat/:chatid', function(req, res) {
     if (req.auth) {
         var chat = req.body;
         if (schema.validateChatUpdate(chat)) {
-            FirebaseManager.updateChat(chat)
+            FirebaseManager.updateChat(req.params.chatid, chat)
                 .then((result) => {
                     res.sendStatus(result);
                 })

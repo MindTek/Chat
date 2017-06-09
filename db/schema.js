@@ -14,7 +14,7 @@ var chatSchema = {
             "required": ["text", "timestamp"]
         },
         "name": { "type": "string" },
-        "type": { "type": "string" },
+        "type": { "enum": ["SINGLE", "GROUP"] },
     },
     "required": ["type", "img", "name"]
 };

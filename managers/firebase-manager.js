@@ -94,7 +94,7 @@ FirebaseManager.prototype.addAdminUser = function (userId, chatId) {
         if (status === FirebaseManager.STATUS_CONNECTED) {
             // Add user ref from chat
             let newAdminUser = {"id": userId, "role": "ADMIN"};
-            chatRef.child(chatId).child('users').child(userId).set(newAdminUser, function(error) {
+            chatRef.child(chatId).child('users').child(userId).update(newAdminUser, function(error) {
                 if (error) {
                     reject(errorHandler.INTERNAL_SERVER_ERROR);
                 } else {
@@ -126,7 +126,7 @@ FirebaseManager.prototype.createUser = function (newUser) {
         if (status === FirebaseManager.STATUS_CONNECTED) {
             userRef.child(newUser.id).set(newUser)
                 .then(function() {
-                    resolve(httpCode.OK);
+                    resolve(httpCode.CREATED);
                 })
                 .catch(function() {
                     reject(errorHandler.INTERNAL_SERVER_ERROR);
@@ -365,9 +365,7 @@ FirebaseManager.prototype.getChatInfo = function (chatId) {
             chatRef.child(chatId).once('value', function(snapshot) {
                 resolve(snapshot.val());
             }, function (error) {
-                if (error) {
-                    reject(errorHandler.NOT_FOUND);
-                }
+                reject(errorHandler.NOT_FOUND);
             });
         } else {
             reject(errorHandler.INTERNAL_SERVER_ERROR);
@@ -496,8 +494,12 @@ FirebaseManager.prototype.getUserRoleInChat = function(userId, chatId) {
        if (status === FirebaseManager.STATUS_CONNECTED) {
            chatRef.child(chatId).child('users').child(userId).once('value', function(snapshot) {
                let result = snapshot.val();
-               console.log(JSON.stringify(result));
-               resolve(result['role']);
+               console.log('user role in chat: ' + result);
+               if (result != null) {
+                   resolve(result['role']);
+               } else {
+                   reject(errorHandler.NOT_FOUND);
+               }
            }, function(error) {
                reject(errorHandler.INTERNAL_SERVER_ERROR);
            })

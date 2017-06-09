@@ -23,7 +23,6 @@ router.post('/chat', function(req, res) {
         var chat = req.body;
         var sender = req.sender;
         if (schema.validateChat(chat)) {
-            if (schema.validateChat(chat)) {
                 FirebaseManager.createChat(chat, sender)
                     .then((chatId) => {
                         res.setHeader('Content-Type', 'application/json');
@@ -32,9 +31,8 @@ router.post('/chat', function(req, res) {
                     .catch((error) => {
                         res.sendStatus(error);
                     });
-            } else {
+        } else {
                 res.sendStatus(errorHandler.BAD_REQUEST);
-            }
         }
     } else {
         res.sendStatus(errorHandler.NOT_AUTHORIZED);
@@ -73,10 +71,12 @@ router.put('/chat/:chatid/users/add', function(req, res) {
     if (req.auth) {
         var chatId = req.params.chatid;
         var usersArray = req.body["users"];
+        console.log(usersArray);
         FirebaseManager.getChatInfo(chatId)
             .then(function(response) {
                 var chatName = response["name"];
                 if (response["type"] == "GROUP") { //If group then add every user
+                    console.log('adding...');
                     FirebaseManager.addUser(usersArray, chatId)
                         .then(function () {
                             res.sendStatus(httpCode.OK);
@@ -86,22 +86,20 @@ router.put('/chat/:chatid/users/add', function(req, res) {
                             res.sendStatus(errorHandler.INTERNAL_SERVER_ERROR);
                         });
                 } else if (response["type"] == "SINGLE") {
-                    if (response["users"].length == 0) {
-                        // Accept two new participants
-                        if (usersArray.length < 2) {
-                            FirebaseManager.addUser(usersArray, chatId)
-                                .then(function () {
-                                    res.sendStatus(httpCode.OK);
-                                })
-                                .catch(function (error) {
-                                    res.sendStatus(errorHandler.INTERNAL_SERVER_ERROR);
-                                });
-                        } else {
-                            res.sendStatus(errorHandler.BAD_REQUEST);
-                        }
+                    // Accept only one participant, since there is a default admin for every chat
+                    if (usersArray.length == 1) {
+                        FirebaseManager.addUser(usersArray, chatId)
+                            .then(function () {
+                                res.sendStatus(httpCode.OK);
+                            })
+                            .catch(function (error) {
+                                res.sendStatus(errorHandler.INTERNAL_SERVER_ERROR);
+                            });
                     } else {
                         res.sendStatus(errorHandler.BAD_REQUEST);
                     }
+                } else {
+                    res.sendStatus(errorHandler.INTERNAL_SERVER_ERROR);
                 }
             })
             .catch(function (error) {
@@ -292,6 +290,7 @@ router.put('/chat/:chatid/users/:userid/role', function(req,res) {
         let sender = req.sender;
         FirebaseManager.getUserRoleInChat(sender, chatId)
             .then(function(senderRole) {
+                console.log(senderRole);
                 if (senderRole == 'USER') { //Users cannot change roles
                     res.sendStatus(errorHandler.NOT_AUTHORIZED);
                 } else if (senderRole == 'ADMIN' && sender == userIdToUpdate) { //Don't let admin to change himself status.
@@ -308,11 +307,14 @@ router.put('/chat/:chatid/users/:userid/role', function(req,res) {
                                 .catch(function (error) {
                                     res.sendStatus(error);
                                 });
+                        })
+                        .catch(function (error) {
+                            res.sendStatus(error);
                         });
                 }
             })
             .catch(function (error) {
-               res.sendStatus(errorHandler.INTERNAL_SERVER_ERROR);
+               res.sendStatus(error);
             });
     } else {
         res.sendStatus(errorHandler.NOT_AUTHORIZED);
@@ -340,7 +342,7 @@ router.delete('/chat/:chatid', function (req,res) {
 function createAndSendNotification(usersArray) {
     LoginManager.getFirebaseToken(usersArray)
         .then(function (tokens) {
-            FirebaseManager.sendMessage(tokens, message.sender.name, message.text, {custom: "This is a custom field!"})
+            FirebaseManager.sendMessage(tokens, message.sender.name, message.text, {})
                 .then(function (response) {
                     logger.info('Notification sent');
                 })
@@ -356,7 +358,7 @@ function createAndSendNotification(usersArray) {
 function createAndSendAddedNotification(usersArray, groupName) {
     LoginManager.getFirebaseToken(usersArray)
         .then(function (tokens) {
-            FirebaseManager.sendMessage(tokens, groupName, notification.ADDED, {custom: "This is a custom field!"})
+            FirebaseManager.sendMessage(tokens, groupName, notification.ADDED, {})
                 .then(function (response) {
                     logger.info('Notification sent');
                 })

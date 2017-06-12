@@ -49,9 +49,9 @@ function authenticate(token) {
         }
     };
     var p = new Promise(function(resolve, reject) {
+        //MOCK
+        resolve({'auth':true, 'id': 2});
         request.get(options, function(error, response, body){
-            //MOCK
-            resolve({'auth':true, 'id': 2});
             /*if (error) {
                 reject();
             } else {

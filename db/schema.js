@@ -50,7 +50,6 @@ var userSchema = {
         "full_name": { "type": "string" },
         "id": { "type": "number" },
         "img": { "type": "string" },
-        //"role": { "type": "string" },
     },
     "additionalProperties": false,
     "required": ["id", "full_name", "img"]

@@ -146,9 +146,20 @@ FirebaseManager.prototype.updateUser = function (user) {
     var userRef = this.getUsersRef();
     var p = new Promise(function (resolve, reject) {
         if (status === FirebaseManager.STATUS_CONNECTED) {
-            userRef.child(user.id).update(user)
-                .then(function() {
-                    resolve(httpCode.OK);
+            // Check that user exists
+            userRef.child(user.id).once('value')
+                .then ((snapshot) => {
+                    if (snapshot.val()) {
+                        userRef.child(user.id).update(user)
+                            .then(function() {
+                                resolve(httpCode.OK);
+                            })
+                            .catch(function() {
+                                reject(errorHandler.INTERNAL_SERVER_ERROR);
+                            });
+                    } else {
+                        reject(errorHandler.NOT_FOUND);
+                    }
                 })
                 .catch(function() {
                     reject(errorHandler.INTERNAL_SERVER_ERROR);

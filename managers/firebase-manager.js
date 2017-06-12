@@ -382,20 +382,30 @@ FirebaseManager.prototype.updateChat = function(chatId, newChat) {
     var chatRef = this.getChatsRef();
     var p = new Promise(function (resolve, reject) {
         if (status === FirebaseManager.STATUS_CONNECTED) {
-            chatRef.child(chatId).update(newChat, function (error) {
-                if (error) {
-                    reject(errorHandler.INTERNAL_SERVER_ERROR);
+            chatRef.child(chatId).once('value')
+            .then(snapshot => {
+                if (snapshot.val()) {
+                    chatRef.child(chatId).update(newChat)
+                    .then(() => {
+                        let newMessage =
+                            {
+                                "chat_id": chatId,
+                                "sender": "SYSTEM",
+                                "text": notification.CHATUPDATED,
+                                "type": "INFO"
+                            };
+                        self.saveMessage(newMessage);
+                        resolve(httpCode.OK);
+                    })
+                    .catch(error => {
+                        reject(errorHandler.INTERNAL_SERVER_ERROR);
+                    });
                 } else {
-                    let newMessage =
-                        {
-                            "chat_id": chatId,
-                            "sender": "SYSTEM",
-                            "text": notification.CHATUPDATED,
-                            "type": "INFO"
-                        };
-                    self.saveMessage(newMessage);
-                    resolve(httpCode.OK);
+                    reject(errorHandler.NOT_FOUND);
                 }
+            })
+            .catch(error => {
+                reject(errorHandler.INTERNAL_SERVER_ERROR);
             });
         } else {
             reject(errorHandler.INTERNAL_SERVER_ERROR);

@@ -10,7 +10,7 @@ const {notification, errorHandler, httpCode} = require('../helpers/enum');
  * Placeholder to show an entry point.
  */
 router.get('/', function(req, res) {
-    res.send('Welcome to this chat!');
+    res.send('Welcome to MindTek chat!');
 });
 
 /**
@@ -117,8 +117,9 @@ router.put('/chat/:chatid/users/add', function(req, res) {
 router.post('/chat/:chatid/message', function(req, res) {
     if (req.auth) {
         var message = req.body;
-        if (schema.validateMessage(message)) {
+        if (schema.validateMessage(JSON.stringify(message))) {
             message["timestamp"] = Date.now();
+            message["chat_id"] = req.params.chatid;
             FirebaseManager.saveMessage(message)
                 .then(function (message) {
                     res.status(201).send(message);
@@ -139,7 +140,6 @@ router.post('/chat/:chatid/message', function(req, res) {
                     });
                     // Get token from LOGIN module, passing all participants in chat :chatid
                     var usersInChatObject = {'users': usersInChat};
-                    console.log('USERS: ' + JSON.stringify(usersInChatObject));
 
                     LoginManager.getFirebaseToken(usersInChatObject)
                         .then(function(tokens) {

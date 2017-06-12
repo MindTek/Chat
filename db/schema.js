@@ -16,13 +16,15 @@ var chatSchema = {
         "name": { "type": "string" },
         "type": { "enum": ["SINGLE", "GROUP"] },
     },
+    "additionalProperties": false,
     "required": ["type", "img", "name"]
 };
 var chatUpdateSchema = {
     "properties": {
         "img": { "type": "string" },
         "name": { "type": "string" },
-    }
+    },
+    "additionalProperties": false,
 };
 var messageSchema = {
     "properties": {
@@ -37,7 +39,8 @@ var messageSchema = {
         "text": { "type": "string" },
         "type": { "type": "string" },
     },
-    "required": ["chat_id", "sender", "text", "type"]
+    "additionalProperties": false,
+    "required": ["sender", "text", "type"]
 };
 var userSchema = {
     "properties": {
@@ -49,6 +52,7 @@ var userSchema = {
         "img": { "type": "string" },
         //"role": { "type": "string" },
     },
+    "additionalProperties": false,
     "required": ["id", "full_name", "img"]
 };
 

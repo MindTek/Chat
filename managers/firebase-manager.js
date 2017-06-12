@@ -142,12 +142,12 @@ FirebaseManager.prototype.createUser = function (newUser) {
  * Update an user (name and/or image).
  * It updates only element inside user node.
  */
-FirebaseManager.prototype.updateUser = function (user) {
+FirebaseManager.prototype.updateUser = function (userid, user) {
     var userRef = this.getUsersRef();
     var p = new Promise(function (resolve, reject) {
         if (status === FirebaseManager.STATUS_CONNECTED) {
             // Check that user exists
-            userRef.child(user.id).once('value')
+            userRef.child(userid).once('value')
                 .then ((snapshot) => {
                     if (snapshot.val()) {
                         userRef.child(user.id).update(user)
@@ -370,14 +370,22 @@ FirebaseManager.prototype.getUserInfo = function (userId) {
  * Get chat info (name, image, type, last message).
  */
 FirebaseManager.prototype.getChatInfo = function (chatId) {
+    console.log('Getting chat info...');
     var chatRef = this.getChatsRef();
     var p = new Promise(function (resolve, reject) {
         if (status === FirebaseManager.STATUS_CONNECTED) {
-            chatRef.child(chatId).once('value', function(snapshot) {
-                resolve(snapshot.val());
-            }, function (error) {
-                reject(errorHandler.NOT_FOUND);
-            });
+            chatRef.child(chatId).once('value')
+                .then(snapshot => {
+                    if (snapshot.val()) {
+                        console.log('chat related: ' + JSON.stringify(snapshot.val()));
+                        resolve(snapshot.val());
+                    } else {
+                        reject(errorHandler.NOT_FOUND);
+                    }
+                })
+                .catch(() => {
+                    reject(errorHandler.INTERNAL_SERVER_ERROR);
+                });
         } else {
             reject(errorHandler.INTERNAL_SERVER_ERROR);
         }

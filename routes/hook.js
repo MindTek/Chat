@@ -29,8 +29,8 @@ router.post('/users', function(req, res) {
  */
 router.put('/users/:userid', function (req, res) {
     let user = req.body;
-    if (schema.validateUser(user)) {
-        FirebaseManager.updateUser(user)
+    if (schema.validateUserUpdate(user)) {
+        FirebaseManager.updateUser(req.params.userid, user)
             .then(result => {
                 res.sendStatus(result);
             })

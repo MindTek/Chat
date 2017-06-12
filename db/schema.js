@@ -54,6 +54,14 @@ var userSchema = {
     "additionalProperties": false,
     "required": ["id", "full_name", "img"]
 };
+var updateUserSchema = {
+    "properties": {
+        "full_name": { "type": "string" },
+        "img": { "type": "string" },
+    },
+    "additionalProperties": false,
+    "required": ["full_name", "img"]
+};
 
 function validateChat(chat) {
     return ajv.validate(chatSchema, chat);
@@ -71,9 +79,14 @@ function validateUser(user) {
     return ajv.validate(userSchema, user);
 }
 
+function validateUserUpdate(user) {
+    return ajv.validate(updateUserSchema, user);
+}
+
 module.exports = {
     validateChat: validateChat,
     validateMessage: validateMessage,
     validateUser: validateUser,
-    validateChatUpdate: validateChatUpdate
+    validateChatUpdate: validateChatUpdate,
+    validateUserUpdate: validateUserUpdate
 };

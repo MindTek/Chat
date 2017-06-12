@@ -71,12 +71,10 @@ router.put('/chat/:chatid/users/add', function(req, res) {
     if (req.auth) {
         var chatId = req.params.chatid;
         var usersArray = req.body["users"];
-        console.log(usersArray);
         FirebaseManager.getChatInfo(chatId)
             .then(function(response) {
                 var chatName = response["name"];
                 if (response["type"] == "GROUP") { //If group then add every user
-                    console.log('adding...');
                     FirebaseManager.addUser(usersArray, chatId)
                         .then(function () {
                             res.sendStatus(httpCode.OK);
@@ -86,13 +84,17 @@ router.put('/chat/:chatid/users/add', function(req, res) {
                             res.sendStatus(errorHandler.INTERNAL_SERVER_ERROR);
                         });
                 } else if (response["type"] == "SINGLE") {
+                    let chatUsers = response["users"];
+                    let numberOfUsersInChat = Object.keys(chatUsers).length;
+                    let numberOfUsersToAdd = usersArray.length;
                     // Accept only one participant, since there is a default admin for every chat
-                    if (usersArray.length == 1) {
+                    if (numberOfUsersInChat == 1 && numberOfUsersToAdd == 1) {
                         FirebaseManager.addUser(usersArray, chatId)
                             .then(function () {
                                 res.sendStatus(httpCode.OK);
                             })
                             .catch(function (error) {
+                                console.log(error);
                                 res.sendStatus(errorHandler.INTERNAL_SERVER_ERROR);
                             });
                     } else {

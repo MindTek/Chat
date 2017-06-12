@@ -78,6 +78,13 @@ Remove an user from a chat.
 
 Delete a chat, set a flag "deleted" on it. This only removes that chat from chat list of users.
 
+###### Update user role inside chat
+> PUT /chat(:chatid/users/:userid/role
+
+Switch role of an user inside a chat between SINGLE and ADMIN.
+If user which request change is admin, then he can edit every other users. Else, he cannot do nothing.
+Request is required and is must be set with the sender id.
+
 ### Login communication
 #### API
 ###### Create a user
@@ -92,9 +99,3 @@ Images are stored on external server and img is link to that resource.
 
 Update user information. Only name and image can be updated.
 
-###### Update user role inside chat
-> PUT /chat(:chatid/users/:userid/role
-
-Switch role of an user inside a chat between SINGLE and ADMIN.
-If user which request change is admin, then he can edit every other users. Else, he cannot do nothing.
-Request is required and is must be set with the sender id.

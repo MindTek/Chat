@@ -573,48 +573,57 @@ FirebaseManager.prototype.removeUser = function (userId, chatId) {
                 let snap = snapshot.val();
                 var adminCounter = 0;
                 var isAdmin = false;
-                // Iterate over all users in that chat
-                for (let i = 0; i < snap.length; i++) {
-                    let user = snap[i];
-                    if (user.role == 'ADMIN') {
-                        adminCounter++;
-                        if (user.id == userId) {
-                            isAdmin = true;
+                if (snap) {
+                    // Iterate over all users in that chat
+                    for (let i = 0; i < snap.length; i++) {
+                        let user = snap[i];
+                        // Prevent exception in case of undefined values in Firebase
+                        if (!user) {
+                            break;
+                        }
+                        if (user.role == 'ADMIN') {
+                            adminCounter++;
+                            if (user.id == userId) {
+                                isAdmin = true;
+                            }
                         }
                     }
-                }
-                // If current user is the only admin, don't let him leave.
-                if (isAdmin && adminCounter == 1) {
-                    logger.info('Unique admin cannot leave chat');
-                    reject(errorHandler.NOT_ACCEPTABLE);
+                    // If current user is the only admin, don't let him leave.
+                    if (isAdmin && adminCounter == 1) {
+                        logger.info('Unique admin cannot leave chat');
+                        reject(errorHandler.NOT_ACCEPTABLE);
+                    } else {
+                        // Remove
+                        chatRef.child(chatId).child("users").child(userId).remove(function (error) {
+                            if (error) {
+                                logger.info('Cannot remove user from chat.');
+                                reject(errorHandler.INTERNAL_SERVER_ERROR);
+                            } else {
+                                // Remove chat ref from user
+                                userRef.child(userId).child("chats").child(chatId).remove(function (error) {
+                                    if (error) {
+                                        logger.info('Cannot remove chat from user.');
+                                        reject(errorHandler.INTERNAL_SERVER_ERROR);
+                                    } else {
+                                        // Add message to chat history
+                                        let newMessage =
+                                            {
+                                                "chat_id": chatId,
+                                                "sender": "SYSTEM",
+                                                "text": notification.USERREMOVED,
+                                                "type": "INFO"
+                                            };
+                                        self.saveMessage(newMessage);
+                                        resolve();
+                                    }
+                                });
+                            }
+                         })
+                    }
                 } else {
-                    // Remove
-                    chatRef.child(chatId).child("users").child(userId).remove(function (error) {
-                        if (error) {
-                            logger.info('Cannot remove user from chat.');
-                            reject(errorHandler.INTERNAL_SERVER_ERROR);
-                        } else {
-                            // Remove chat ref from user
-                            userRef.child(userId).child("chats").child(chatId).remove(function (error) {
-                                if (error) {
-                                    logger.info('Cannot remove chat from user.');
-                                    reject(errorHandler.INTERNAL_SERVER_ERROR);
-                                } else {
-                                    // Add message to chat history
-                                    let newMessage =
-                                        {
-                                            "chat_id": chatId,
-                                            "sender": "SYSTEM",
-                                            "text": notification.USERREMOVED,
-                                            "type": "INFO"
-                                        };
-                                    self.saveMessage(newMessage);
-                                    resolve();
-                                }
-                            });
-                        }
-                     })
+                    reject(errorHandler.NOT_FOUND);
                 }
+                
             });
         } else {
             reject(errorHandler.INTERNAL_SERVER_ERROR);

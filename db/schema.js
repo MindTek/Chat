@@ -31,13 +31,13 @@ var messageSchema = {
         "chat_id": { "type": "string" },
         "sender": {
             "properties" : {
-                "id": { "type":"string" },
+                "id": { "type":"number" },
                 "name": { "type":"string" }
             },
             "required": ["id", "name"]
         },
         "text": { "type": "string" },
-        "type": { "type": "string" },
+        "type": { "type": "string", "pattern": "^TEXT$|^AUDIO$|^IMAGE$|^VIDEO$" },
     },
     "additionalProperties": false,
     "required": ["sender", "text", "type"]

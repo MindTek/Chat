@@ -119,47 +119,54 @@ router.put('/chat/:chatid/users/add', function(req, res) {
 router.post('/chat/:chatid/message', function(req, res) {
     if (req.auth) {
         var message = req.body;
-        if (schema.validateMessage(JSON.stringify(message))) {
-            message["timestamp"] = Date.now();
-            message["chat_id"] = req.params.chatid;
-            FirebaseManager.saveMessage(message)
-                .then(function (message) {
-                    res.status(201).send(message);
-                })
-                .catch(function (error) {
-                    res.sendStatus(error);
-                });
-            // Get users in chat and send a notification to them.
-            FirebaseManager.getChatUsers(req.params.chatid)
-                .then(function (users) {
+        var chatid = req.params.chatid;
+        console.log(message);
+        if (schema.validateMessage(message)) {
+            // Check that sender is participating to that chat (and that chat exists)
+            let userId = message["sender"]["id"];
+            FirebaseManager.getChatUsers(chatid)
+                .then((users) => {
                     let usersInChat = [];
-                    users.forEach(function(u) {
+                    let isUserInChat = false;
+                    users.forEach(function (u) {
                         // Don't send notification to the message sender.
                         if (u.id == message.sender.id) {
-                            return;
+                            isUserInChat = true;
                         }
                         usersInChat.push(u.id);
                     });
-                    // Get token from LOGIN module, passing all participants in chat :chatid
-                    var usersInChatObject = {'users': usersInChat};
-
-                    LoginManager.getFirebaseToken(usersInChatObject)
-                        .then(function(tokens) {
-                            FirebaseManager.sendMessage(tokens, notification.MESSAGE, message.text, {custom: "This is a custom field!"})
-                                .then(function (response) {
-                                    console.log('Notification sent');
-                                })
-                                .catch(function (error) {
-                                    console.log('Notification not sent');
-                                });
-                        })
-                        .catch(function(error) {
-                            console.log('.....Impossible to retrieve tokens ' + error);
-                        });
-
+                    if (!isUserInChat) {
+                        res.sendStatus(errorHandler.NOT_FOUND);
+                    } else {
+                        message["timestamp"] = Date.now();
+                        message["chat_id"] = chatid;
+                        FirebaseManager.saveMessage(message)
+                            .then(function (message) {
+                                res.status(201).send(message);
+                            })
+                            .catch(function (error) {
+                                res.sendStatus(error);
+                            });
+                        // Get token from LOGIN module, passing all participants in chat :chatid
+                        var usersInChatObject = {'users': usersInChat};
+                        LoginManager.getFirebaseToken(usersInChatObject)
+                            .then(function (tokens) {
+                                // Send a notification to all users in chat, except the sender.
+                                FirebaseManager.sendMessage(tokens, notification.MESSAGE, message.text, {custom: "This is a custom field!"})
+                                    .then(function (response) {
+                                        console.log('Notification sent');
+                                    })
+                                    .catch(function (error) {
+                                        console.log('Notification not sent');
+                                    });
+                            })
+                            .catch(function (error) {
+                                console.log('.....Impossible to retrieve tokens ' + error);
+                            });
+                    }
                 })
-                .catch(function (error) {
-                    console.log('Impossible to send notification. ' + error);
+                .catch((error) => {
+                    res.sendStatus(error);
                 });
         } else {
             res.sendStatus(errorHandler.BAD_REQUEST);
@@ -235,10 +242,10 @@ router.get('/chat/:chatid/lastmessage', function(req, res) {
     if (req.auth) {
         FirebaseManager.getLastMessage(req.params.chatid)
             .then(function (result) {
-                res.status(201).send(result);
+                res.status(httpCode.OK).send(result);
             })
-            .catch(function () {
-                res.status(404).send('404');
+            .catch(function (error) {
+                res.sendStatus(error);
             });
     } else {
         res.sendStatus(errorHandler.NOT_AUTHORIZED);
@@ -329,11 +336,11 @@ router.put('/chat/:chatid/users/:userid/role', function(req,res) {
 router.delete('/chat/:chatid', function (req,res) {
     if (req.auth) {
         FirebaseManager.deleteChat(req.params.chatid)
-            .then(function () {
-                res.status(201).send('201');
+            .then(function (result) {
+                res.sendStatus(result);
             })
             .catch(function (error) {
-                res.status(404).send(error);
+                res.sendStatus(error)
             });
     } else {
         res.sendStatus(errorHandler.NOT_AUTHORIZED);

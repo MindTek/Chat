@@ -213,13 +213,17 @@ FirebaseManager.prototype.getAllMessages = function (chatId) {
         if (status === FirebaseManager.STATUS_CONNECTED) {
             messageRef.orderByChild('chat_id').equalTo(chatId).once('value')
                 .then(function (snapshot) {
-                    var messages = new Array();
-                    var result = snapshot.val();
-                    // Build array for client
-                    for (var mess in result) {
-                        messages.push(result[mess]);
+                    if (snapshot.val()) {
+                        var messages = new Array();
+                        var result = snapshot.val();
+                        // Build array for client
+                        for (var mess in result) {
+                            messages.push(result[mess]);
+                        }
+                        resolve(messages);
+                    } else {
+                        reject(errorHandler.NOT_FOUND);
                     }
-                    resolve(messages);
                 })
                  .catch(function (error) {
                     if (error) {
@@ -242,14 +246,16 @@ FirebaseManager.prototype.getLastMessage = function (chatId) {
         if (status === FirebaseManager.STATUS_CONNECTED) {
             chatRef.child(chatId).child('last_message').once('value', function(snapshot) {
                 var result = snapshot.val();
-                resolve(result);
-            }, function (error) {
-                if (error) {
-                    reject('Cannot get latest message');
+                if (result ){
+                    resolve(result);
+                } else {
+                    reject(errorHandler.NOT_FOUND);
                 }
+            }, function (error) {
+                reject(errorHandler.INTERNAL_SERVER_ERROR);
             });
         } else {
-            reject(500, error.FIREBASE_ERROR);
+            reject(errorHandler.INTERNAL_SERVER_ERROR);
         }
     });
     return p;
@@ -263,32 +269,36 @@ FirebaseManager.prototype.getChats = function (userId) {
         var p = new Promise(function (resolve, reject) {
             if (status === FirebaseManager.STATUS_CONNECTED) {
                 userRef.child(userId).child('chats').once('value', function (snapshot) {
-                    var allPromises = new Array();
-                    for (let chatId in snapshot.val()) {
-                        let innerPromise = new Promise((resolve, reject) => {
-                            chatRef.orderByKey().equalTo(chatId).once('value', function (snapshot) {
-                                let result = snapshot.val();
-                                //Filter deleted chats
-                                let chatObj = result[chatId];
-                                if (chatObj['deleted'] != 'true') {
-                                    resolve(result);
-                                } else {
-                                    resolve();
-                                }
+                    if (snapshot.val()) {
+                        var allPromises = new Array();
+                        for (let chatId in snapshot.val()) {
+                            let innerPromise = new Promise((resolve, reject) => {
+                                chatRef.orderByKey().equalTo(chatId).once('value', function (snapshot) {
+                                    let result = snapshot.val();
+                                    //Filter deleted chats
+                                    let chatObj = result[chatId];
+                                    if (chatObj['deleted'] != 'true') {
+                                        resolve(result);
+                                    } else {
+                                        resolve();
+                                    }
+                                });
                             });
-                        });
-                        allPromises.push(innerPromise);
-                    }
-                    Promise.all(allPromises).then(values => {
-                        // Filter empty objects
-                        if (typeof(values[0])!='undefined') {
-                            resolve(values);
-                        } else {
-                            resolve([]);
+                            allPromises.push(innerPromise);
                         }
-                    }).catch(error => {
-                        reject(errorHandler.INTERNAL_SERVER_ERROR);
-                    });
+                        Promise.all(allPromises).then(values => {
+                            // Filter empty objects
+                            if (typeof(values[0])!='undefined') {
+                                resolve(values);
+                            } else {
+                                resolve([]);
+                            }
+                        }).catch(error => {
+                            reject(errorHandler.INTERNAL_SERVER_ERROR);
+                        });
+                    } else {
+                        reject(errorHandler.NOT_FOUND);
+                    }
                 }), function (error) {
                     if (error) {
                         reject(errorHandler.NOT_FOUND);
@@ -310,37 +320,46 @@ FirebaseManager.prototype.getChatUsers = function(chatId) {
     var userRef = this.getUsersRef();
     var p = new Promise(function (resolve, reject) {
         if (status === FirebaseManager.STATUS_CONNECTED) {
-            chatRef.child(chatId).child('users').once('value', function (snapshot) {
-                var allPromises = new Array();
-                let snap = snapshot.val();
-                var result = [];
-                for (var userKey in snap) {
-                    result.push(snap[userKey]);
-                }
-                result.forEach(function (user) {
-                    let innerPromise = new Promise((resolve, reject) => {
-                        userRef.child(user.id).once('value', function (snapshot) {
-                            var resultingObject = snapshot.val();
-                            delete resultingObject['chats'];
-                            resultingObject['role'] = user.role;
-                            resolve(resultingObject);
-                        }, function(error) {
-                            reject(errorHandler.NOT_FOUND);
+            // Check that chat exists
+            chatRef.child(chatId).once('value')
+                .then((snapshot) => {
+                    if (snapshot.val()) {
+                        chatRef.child(chatId).child('users').once('value', function (snapshot) {
+                            var allPromises = new Array();
+                            let snap = snapshot.val();
+                            var result = [];
+                            for (var userKey in snap) {
+                                result.push(snap[userKey]);
+                            }
+                            result.forEach(function (user) {
+                                let innerPromise = new Promise((resolve, reject) => {
+                                    userRef.child(user.id).once('value', function (snapshot) {
+                                        var resultingObject = snapshot.val();
+                                        delete resultingObject['chats'];
+                                        resultingObject['role'] = user.role;
+                                        resolve(resultingObject);
+                                    }, function(error) {
+                                        reject(errorHandler.NOT_FOUND);
+                                    });
+                                });
+                                allPromises.push(innerPromise);
+                            });
+                            Promise.all(allPromises).then(values => {
+                                resolve(values);
+                            }).catch(function(error) {
+                                reject(errorHandler.INTERNAL_SERVER_ERROR);
+                            });
                         });
-                    });
-                    allPromises.push(innerPromise);
-                });
-                Promise.all(allPromises).then(values => {
-                    resolve(values);
-                }).catch(function(error) {
+                    } else {
+                        reject(errorHandler.NOT_FOUND);
+                    }
+                })
+                .catch((error) => {
                     reject(errorHandler.INTERNAL_SERVER_ERROR);
                 });
-            }, function (error) {
-                reject(errorHandler.NOT_FOUND);
-            });
-        } else {
-            reject(errorHandler.INTERNAL_SERVER_ERROR);
-        }
+            } else {
+                reject(errorHandler.INTERNAL_SERVER_ERROR);
+            }
     });
     return p;
 };
@@ -370,7 +389,6 @@ FirebaseManager.prototype.getUserInfo = function (userId) {
  * Get chat info (name, image, type, last message).
  */
 FirebaseManager.prototype.getChatInfo = function (chatId) {
-    console.log('Getting chat info...');
     var chatRef = this.getChatsRef();
     var p = new Promise(function (resolve, reject) {
         if (status === FirebaseManager.STATUS_CONNECTED) {
@@ -441,13 +459,24 @@ FirebaseManager.prototype.deleteChat = function (chatId) {
         var chatRef = this.getChatsRef();
         var p = new Promise(function (resolve, reject) {
             if (status === FirebaseManager.STATUS_CONNECTED) {
-                chatRef.child(chatId).update({"deleted": "true"}, function (error) {
-                    if (error) {
+                // Check that chat exists
+                chatRef.child(chatId).once('value')
+                    .then((snapshot) => {
+                        if (snapshot.val()) {
+                            chatRef.child(chatId).update({"deleted": "true"}, function (error) {
+                                if (error) {
+                                    reject(errorHandler.INTERNAL_SERVER_ERROR);
+                                } else {
+                                    resolve(httpCode.OK);
+                                }
+                            });
+                        } else {
+                           reject(errorHandler.NOT_FOUND);
+                        }
+                    })
+                    .catch((error) => {
                         reject(errorHandler.INTERNAL_SERVER_ERROR);
-                    } else {
-                        resolve();
-                    }
-                });
+                    });
             } else {
                 reject(errorHandler.INTERNAL_SERVER_ERROR);
             }
@@ -573,24 +602,36 @@ FirebaseManager.prototype.removeUser = function (userId, chatId) {
                 let snap = snapshot.val();
                 var adminCounter = 0;
                 var isAdmin = false;
+
                 if (snap) {
+                    let isParticipant;
                     // Iterate over all users in that chat
                     for (let i = 0; i < snap.length; i++) {
                         let user = snap[i];
                         // Prevent exception in case of undefined values in Firebase
                         if (!user) {
-                            break;
+                            continue;
+                        }
+                        // Check that use is participating to that chat
+                        if (user.id == userId) {
+                            isParticipant = true;
+                        } else {
+                            isParticipant = false;
                         }
                         if (user.role == 'ADMIN') {
+                            // Count number of admin in chat
                             adminCounter++;
                             if (user.id == userId) {
+                                // Set that user to remove is admin
                                 isAdmin = true;
                             }
                         }
                     }
+                    if (!isParticipant) {
+                        reject(errorHandler.NOT_FOUND);
+                    }
                     // If current user is the only admin, don't let him leave.
                     if (isAdmin && adminCounter == 1) {
-                        logger.info('Unique admin cannot leave chat');
                         reject(errorHandler.NOT_ACCEPTABLE);
                     } else {
                         // Remove

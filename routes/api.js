@@ -26,7 +26,9 @@ router.post('/chat', function(req, res) {
                 FirebaseManager.createChat(chat, sender)
                     .then((chatId) => {
                         res.setHeader('Content-Type', 'application/json');
-                        res.status(httpCode.CREATED).send(JSON.stringify({'id': chatId}));
+                        let createdChat = chat;
+                        chat['id'] = chatId;
+                        res.status(httpCode.CREATED).send(JSON.stringify(chat));
                     })
                     .catch((error) => {
                         res.sendStatus(error);

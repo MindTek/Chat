@@ -87,7 +87,6 @@ FirebaseManager.prototype.createChat = function (newChat, senderId) {
  * Add admins when chat is created.
  */
 FirebaseManager.prototype.addAdminUser = function (userId, chatId) {
-    console.log('adding user..');
     var chatRef = this.getChatsRef();
     var userRef = this.getUsersRef();
     var p = new Promise(function (resolve, reject) {

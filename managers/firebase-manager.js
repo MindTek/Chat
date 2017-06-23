@@ -177,26 +177,32 @@ FirebaseManager.prototype.updateUser = function (userid, user) {
  * Notification is not sent here.
  */
 FirebaseManager.prototype.saveMessage = function (newMessage) {
+    console.log('Save message..');
+    var chatRef = this.getChatsRef();
     var messageRef = this.getMessagesRef();
     var p = new Promise(function(resolve, reject) {
         if (status === FirebaseManager.STATUS_CONNECTED) {
             var newMessageRef = messageRef.push(newMessage, function (error) {
                 if (error) {
+                    console.log('Impossible to save message');
                     reject(errorHandler.INTERNAL_SERVER_ERROR);
+                } else {
+                    console.log('Message sent. Now update latest message...');
+                    var messagePosted = newMessageRef.key; 
+                    // Update chat with latest message
+                    newMessage["message_id"] = messagePosted;
+                    var lastMessage = {"last_message": newMessage};
+                    console.log('Latest message: ' + JSON.stringify(newMessage));
+                    chatRef.child(newMessage.chat_id).update(lastMessage, function(error) {
+                        if (error) {
+                            logger.info('Chat last message not updated!');
+                        }
+                    });
+                    resolve({"id": messagePosted});
                 }
             });
-            var messagePosted = newMessageRef.key;
-            resolve({"id": messagePosted});
         } else {
             reject(errorHandler.INTERNAL_SERVER_ERROR);
-        }
-    });
-    // Update chat with latest message
-    var lastMessage = {"last_message": newMessage};
-    var chatRef = this.getChatsRef();
-    chatRef.child(newMessage.chat_id).update(lastMessage, function(error) {
-        if (error) {
-            logger.info('Chat last message not updated!');
         }
     });
     return p;
@@ -215,9 +221,14 @@ FirebaseManager.prototype.getAllMessages = function (chatId) {
                     if (snapshot.val()) {
                         var messages = new Array();
                         var result = snapshot.val();
-                        // Build array for client
+                        // Build array for client, including message id
                         for (var mess in result) {
-                            messages.push(result[mess]);
+                            let currentMessage = {};
+                            currentMessage["message_id"] = mess;
+                            for (item in result[mess]) {
+                                currentMessage[item] = result[mess][item];
+                            }
+                            messages.push(currentMessage);
                         }
                         resolve(messages);
                     } else {
@@ -423,10 +434,11 @@ FirebaseManager.prototype.updateChat = function(chatId, newChat) {
                 if (snapshot.val()) {
                     chatRef.child(chatId).update(newChat)
                     .then(() => {
+                        let currentSender = {"id":"0", "name": "SYSTEM"}
                         let newMessage =
                             {
                                 "chat_id": chatId,
-                                "sender": "SYSTEM",
+                                "sender": currentSender,
                                 "text": notification.CHATUPDATED,
                                 "type": "INFO"
                             };
@@ -513,9 +525,10 @@ FirebaseManager.prototype.addUser = function (users, chatId) {
                                             let newMessage =
                                                 {
                                                     "chat_id": chatId,
-                                                    "sender": "SYSTEM",
+                                                    "sender": {"id":"0", "name": "SYSTEM"},
                                                     "text": notification.NEWUSERADDED,
-                                                    "type": "INFO"
+                                                    "type": "INFO",
+                                                    "timestamp": Date.now().toString()
                                                 };
                                             self.saveMessage(newMessage);
                                         });
@@ -649,7 +662,7 @@ FirebaseManager.prototype.removeUser = function (userId, chatId) {
                                         let newMessage =
                                             {
                                                 "chat_id": chatId,
-                                                "sender": "SYSTEM",
+                                                "sender": {"id":"0", "name": "SYSTEM"},
                                                 "text": notification.USERREMOVED,
                                                 "type": "INFO"
                                             };

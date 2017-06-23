@@ -140,7 +140,7 @@ router.post('/chat/:chatid/message', function(req, res) {
                     if (!isUserInChat) {
                         res.sendStatus(errorHandler.NOT_FOUND);
                     } else {
-                        message["timestamp"] = Date.now();
+                        message["timestamp"] = Date.now().toString();
                         message["chat_id"] = chatid;
                         FirebaseManager.saveMessage(message)
                             .then(function (message) {

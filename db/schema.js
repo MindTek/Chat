@@ -31,7 +31,7 @@ var messageSchema = {
         "chat_id": { "type": "string" },
         "sender": {
             "properties" : {
-                "id": { "type":"number" },
+                "id": { "type":"string" },
                 "name": { "type":"string" }
             },
             "required": ["id", "name"]
@@ -48,7 +48,7 @@ var userSchema = {
             "type": "object",
         },
         "full_name": { "type": "string" },
-        "id": { "type": "number" },
+        "id": { "type": "string" },
         "img": { "type": "string" },
     },
     "additionalProperties": false,

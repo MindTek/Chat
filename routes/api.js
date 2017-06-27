@@ -1,4 +1,6 @@
 const express = require('express');
+const multer  = require('multer')
+const upload = multer({ dest: 'uploads/' });
 const router = express.Router();
 const schema = require('../db/schema');
 const FirebaseManager = require('../managers/firebase-manager');
@@ -107,7 +109,7 @@ router.put('/chat/:chatid/users/add', function(req, res) {
                 }
             })
             .catch(function (error) {
-                res.sendStatus(errorHandler.INTERNAL_SERVER_ERROR);
+                res.sendStatus(errorHandler.NOT_FOUND);
             });
     } else {
         res.sendStatus(errorHandler.NOT_AUTHORIZED);
@@ -117,59 +119,73 @@ router.put('/chat/:chatid/users/add', function(req, res) {
 /**
  * Create and post a new message to a chat.
  * Send notification to user involved in that chat.
+ * This methods is multipart, because a message can contain additional data, which will be uploaded to an external server.
  */
-router.post('/chat/:chatid/message', function(req, res) {
+router.post('/chat/:chatid/message', upload.single('file'), function(req, res) {
     if (req.auth) {
-        var message = req.body;
+        var attachment = req.file;
+        var message = req.body.message;
         var chatid = req.params.chatid;
-        console.log(message);
+        // TODO: Validate message. It's multipart now!
         if (schema.validateMessage(message)) {
-            // Check that sender is participating to that chat (and that chat exists)
-            let userId = message["sender"]["id"];
-            FirebaseManager.getChatUsers(chatid)
-                .then((users) => {
-                    let usersInChat = [];
-                    let isUserInChat = false;
-                    users.forEach(function (u) {
-                        // Don't send notification to the message sender.
-                        if (u.id == message.sender.id) {
-                            isUserInChat = true;
-                        }
-                        usersInChat.push(u.id);
-                    });
-                    if (!isUserInChat) {
-                        res.sendStatus(errorHandler.NOT_FOUND);
-                    } else {
-                        message["timestamp"] = Date.now().toString();
-                        message["chat_id"] = chatid;
-                        FirebaseManager.saveMessage(message)
-                            .then(function (message) {
-                                res.status(201).send(message);
-                            })
-                            .catch(function (error) {
-                                res.sendStatus(error);
+            if (attachment) {
+                // Post file to external service
+                LoginManager.postFile(attachment)
+                .then((result) => {
+                    message = JSON.parse(message);
+                    // Check that sender is participating to that chat (and that chat exists)
+                    let userId = message["sender"]["id"];
+                    FirebaseManager.getChatUsers(chatid)
+                        .then((users) => {
+                            let usersInChat = [];
+                            let isUserInChat = false;
+                            users.forEach(function (u) {
+                                // Don't send notification to the message sender.
+                                if (u.id == message.sender.id) {
+                                    isUserInChat = true;
+                                }
+                                usersInChat.push(u.id);
                             });
-                        // Get token from LOGIN module, passing all participants in chat :chatid
-                        var usersInChatObject = {'users': usersInChat};
-                        LoginManager.getFirebaseToken(usersInChatObject)
-                            .then(function (tokens) {
-                                // Send a notification to all users in chat, except the sender.
-                                FirebaseManager.sendMessage(tokens, notification.MESSAGE, message.text, {custom: "This is a custom field!"})
-                                    .then(function (response) {
-                                        console.log('Notification sent');
+                            console.log(u);
+                            if (!isUserInChat) {
+                                console.log('user not found');
+                                res.sendStatus(errorHandler.NOT_FOUND);
+                            } else {
+                                message["timestamp"] = Date.now().toString();
+                                message["chat_id"] = chatid;
+                                FirebaseManager.saveMessage(message)
+                                    .then(function (message) {
+                                        res.status(201).send(message);
                                     })
                                     .catch(function (error) {
-                                        console.log('Notification not sent');
+                                        res.sendStatus(error);
                                     });
-                            })
-                            .catch(function (error) {
-                                console.log('.....Impossible to retrieve tokens ' + error);
-                            });
-                    }
+                                // Get token from LOGIN module, passing all participants in chat :chatid
+                                var usersInChatObject = {'users': usersInChat};
+                                LoginManager.getFirebaseToken(usersInChatObject)
+                                    .then(function (tokens) {
+                                        // Send a notification to all users in chat, except the sender.
+                                        FirebaseManager.sendMessage(tokens, notification.MESSAGE, message.text, {custom: "This is a custom field!"})
+                                            .then(function (response) {
+                                                console.log('Notification sent');
+                                            })
+                                            .catch(function (error) {
+                                                console.log('Notification not sent');
+                                            });
+                                    })
+                                    .catch(function (error) {
+                                        console.log('Impossible to retrieve tokens ' + error);
+                                    });
+                            }
+                        })
+                        .catch((error) => {
+                            res.sendStatus(error);
+                        });
                 })
                 .catch((error) => {
-                    res.sendStatus(error);
+                    res.sendStatus(errorHandler.INTERNAL_SERVER_ERROR);
                 });
+            }       
         } else {
             res.sendStatus(errorHandler.BAD_REQUEST);
         }

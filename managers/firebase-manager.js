@@ -192,13 +192,12 @@ FirebaseManager.prototype.saveMessage = function (newMessage) {
                     // Update chat with latest message
                     newMessage["message_id"] = messagePosted;
                     var lastMessage = {"last_message": newMessage};
-                    console.log('Latest message: ' + JSON.stringify(newMessage));
                     chatRef.child(newMessage.chat_id).update(lastMessage, function(error) {
                         if (error) {
                             logger.info('Chat last message not updated!');
                         }
                     });
-                    resolve({"id": messagePosted});
+                    resolve(newMessage);
                 }
             });
         } else {
@@ -334,7 +333,7 @@ FirebaseManager.prototype.getChatUsers = function(chatId) {
             chatRef.child(chatId).once('value')
                 .then((snapshot) => {
                     if (snapshot.val()) {
-                        chatRef.child(chatId).child('users').once('value', function (snapshot) {
++                        chatRef.child(chatId).child('users').once('value', function (snapshot) {
                             var allPromises = new Array();
                             let snap = snapshot.val();
                             var result = [];

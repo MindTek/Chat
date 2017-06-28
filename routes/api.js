@@ -126,17 +126,19 @@ router.post('/chat/:chatid/message', upload.single('file'), function(req, res) {
         var attachment = req.file;
         var message = req.body.message;
         var chatid = req.params.chatid;
-        // TODO: Validate message. It's multipart now!
         if (schema.validateMessage(message)) {
+            console.log('Received a request for send message ' + message);
             if (attachment) {
                 // Post file to external service
                 LoginManager.postFile(attachment)
                 .then((result) => {
+                    console.log('Got attachment URL: ' + result);
                     message = JSON.parse(message);
                     // Check that sender is participating to that chat (and that chat exists)
                     let userId = message["sender"]["id"];
                     FirebaseManager.getChatUsers(chatid)
                         .then((users) => {
+                            console.log('Retrieved ' + users.length + ' users in chat ' + chatid);
                             let usersInChat = [];
                             let isUserInChat = false;
                             users.forEach(function (u) {
@@ -146,18 +148,19 @@ router.post('/chat/:chatid/message', upload.single('file'), function(req, res) {
                                 }
                                 usersInChat.push(u.id);
                             });
-                            console.log(u);
                             if (!isUserInChat) {
-                                console.log('user not found');
+                                console.log('User with id ' + message.sender.id + ' not found in chat ' + chatid);
                                 res.sendStatus(errorHandler.NOT_FOUND);
                             } else {
                                 message["timestamp"] = Date.now().toString();
                                 message["chat_id"] = chatid;
                                 FirebaseManager.saveMessage(message)
                                     .then(function (message) {
+                                        console.log('Message saved!')
                                         res.status(201).send(message);
                                     })
                                     .catch(function (error) {
+                                        console.log('Error saving message!');
                                         res.sendStatus(error);
                                     });
                                 // Get token from LOGIN module, passing all participants in chat :chatid
@@ -167,14 +170,14 @@ router.post('/chat/:chatid/message', upload.single('file'), function(req, res) {
                                         // Send a notification to all users in chat, except the sender.
                                         FirebaseManager.sendMessage(tokens, notification.MESSAGE, message.text, {custom: "This is a custom field!"})
                                             .then(function (response) {
-                                                console.log('Notification sent');
+                                                console.log('Notification sent!');
                                             })
                                             .catch(function (error) {
-                                                console.log('Notification not sent');
+                                                console.log('Notification not sent!');
                                             });
                                     })
                                     .catch(function (error) {
-                                        console.log('Impossible to retrieve tokens ' + error);
+                                        console.log('Impossible to retrieve Firebase token for user ' + message.sender.id);
                                     });
                             }
                         })

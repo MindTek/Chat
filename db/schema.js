@@ -38,6 +38,7 @@ var messageSchema = {
         },
         "text": { "type": "string" },
         "type": { "type": "string", "pattern": "^TEXT$|^AUDIO$|^IMAGE$|^VIDEO$" },
+        "url": { "type": "string" }
     },
     "additionalProperties": false,
     "required": ["sender", "text", "type"]

@@ -124,7 +124,8 @@ router.put('/chat/:chatid/users/add', function(req, res) {
 router.post('/chat/:chatid/message', upload.single('file'), function(req, res) {
     if (req.auth) {
         var attachment = req.file;
-        var message = req.body.message;
+        // Parse message as JSON since it's multipart and it doesn't have correct content type
+        var message = JSON.parse(req.body.message);
         var chatid = req.params.chatid;
         if (schema.validateMessage(message)) {
             console.log('Received a request for send message ' + message);
@@ -133,62 +134,15 @@ router.post('/chat/:chatid/message', upload.single('file'), function(req, res) {
                 LoginManager.postFile(attachment)
                 .then((result) => {
                     console.log('Got attachment URL: ' + result);
-                    message = JSON.parse(message);
-                    // Check that sender is participating to that chat (and that chat exists)
-                    let userId = message["sender"]["id"];
-                    FirebaseManager.getChatUsers(chatid)
-                        .then((users) => {
-                            console.log('Retrieved ' + users.length + ' users in chat ' + chatid);
-                            let usersInChat = [];
-                            let isUserInChat = false;
-                            users.forEach(function (u) {
-                                // Don't send notification to the message sender.
-                                if (u.id == message.sender.id) {
-                                    isUserInChat = true;
-                                }
-                                usersInChat.push(u.id);
-                            });
-                            if (!isUserInChat) {
-                                console.log('User with id ' + message.sender.id + ' not found in chat ' + chatid);
-                                res.sendStatus(errorHandler.NOT_FOUND);
-                            } else {
-                                message["timestamp"] = Date.now().toString();
-                                message["chat_id"] = chatid;
-                                FirebaseManager.saveMessage(message)
-                                    .then(function (message) {
-                                        console.log('Message saved!')
-                                        res.status(201).send(message);
-                                    })
-                                    .catch(function (error) {
-                                        console.log('Error saving message!');
-                                        res.sendStatus(error);
-                                    });
-                                // Get token from LOGIN module, passing all participants in chat :chatid
-                                var usersInChatObject = {'users': usersInChat};
-                                LoginManager.getFirebaseToken(usersInChatObject)
-                                    .then(function (tokens) {
-                                        // Send a notification to all users in chat, except the sender.
-                                        FirebaseManager.sendMessage(tokens, notification.MESSAGE, message.text, {custom: "This is a custom field!"})
-                                            .then(function (response) {
-                                                console.log('Notification sent!');
-                                            })
-                                            .catch(function (error) {
-                                                console.log('Notification not sent!');
-                                            });
-                                    })
-                                    .catch(function (error) {
-                                        console.log('Impossible to retrieve Firebase token for user ' + message.sender.id);
-                                    });
-                            }
-                        })
-                        .catch((error) => {
-                            res.sendStatus(error);
-                        });
+                    message['url'] = result;
+                    saveMessage(message, chatid, req, res);
                 })
                 .catch((error) => {
                     res.sendStatus(errorHandler.INTERNAL_SERVER_ERROR);
                 });
-            }       
+            } else { //No attachment
+                saveMessage(message, chatid, req, res);
+            }      
         } else {
             res.sendStatus(errorHandler.BAD_REQUEST);
         }
@@ -196,6 +150,60 @@ router.post('/chat/:chatid/message', upload.single('file'), function(req, res) {
         res.sendStatus(errorHandler.NOT_AUTHORIZED);
     }
 });
+
+function saveMessage(message, chatid, req, res) {
+    console.log('inside');
+    // Check that sender is participating to that chat (and that chat exists)
+    let userId = message["sender"]["id"];
+    FirebaseManager.getChatUsers(chatid)
+        .then((users) => {
+            console.log('Retrieved ' + users.length + ' users in chat ' + chatid);
+            let usersInChat = [];
+            let isUserInChat = false;
+            users.forEach(function (u) {
+                // Don't send notification to the message sender.
+                if (u.id == message.sender.id) {
+                    isUserInChat = true;
+                }
+                usersInChat.push(u.id);
+            });
+            if (!isUserInChat) {
+                console.log('User with id ' + message.sender.id + ' not found in chat ' + chatid);
+                res.sendStatus(errorHandler.NOT_FOUND);
+            } else {
+                message["timestamp"] = Date.now().toString();
+                message["chat_id"] = chatid;
+                FirebaseManager.saveMessage(message)
+                    .then(function (message) {
+                        console.log('Message saved!')
+                        res.status(201).send(message);
+                    })
+                    .catch(function (error) {
+                        console.log('Error saving message!');
+                        res.sendStatus(error);
+                    });
+                // Get token from LOGIN module, passing all participants in chat :chatid
+                var usersInChatObject = {'users': usersInChat};
+                LoginManager.getFirebaseToken(usersInChatObject)
+                    .then(function (tokens) {
+                        // Send a notification to all users in chat, except the sender.
+                        FirebaseManager.sendMessage(tokens, notification.MESSAGE, message.text, {custom: "This is a custom field!"})
+                            .then(function (response) {
+                                console.log('Notification sent!');
+                            })
+                            .catch(function (error) {
+                                console.log('Notification not sent!');
+                            });
+                    })
+                    .catch(function (error) {
+                        console.log('Impossible to retrieve Firebase token for user ' + message.sender.id);
+                    });
+            }
+        })
+        .catch((error) => {
+            res.sendStatus(error);
+        });
+}
 
 /**
  * Exit chat. It removes a user from a specific chat when it decides to leave it.

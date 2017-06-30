@@ -176,28 +176,41 @@ function saveMessage(message, chatid, req, res) {
                 FirebaseManager.saveMessage(message)
                     .then(function (message) {
                         console.log('Message saved!')
+                        var messageToSend = {
+                            "message_id":message["message_id"],
+                            "chat_id":message["chat_id"],
+                            "sender_id":message["sender"]["id"],
+                            "text":message["text"],
+                            "type":message["type"],
+                            "url":"",
+                            "timestamp":message["timestamp"]
+                        };
+                        if (message["url"]) {
+                            messageToSend["url"] = message["url"];
+                        } 
                         res.status(201).send(message);
-                    })
-                    .catch(function (error) {
-                        console.log('Error saving message!');
-                        res.sendStatus(error);
-                    });
-                // Get token from LOGIN module, passing all participants in chat :chatid
-                var usersInChatObject = {'users': usersInChat};
-                LoginManager.getFirebaseToken(usersInChatObject)
-                    .then(function (tokens) {
-                        // Send a notification to all users in chat, except the sender.
-                        FirebaseManager.sendMessage(tokens, notification.MESSAGE, message.text, {custom: "This is a custom field!"})
-                            .then(function (response) {
-                                console.log('Notification sent!');
+                        // Get token from LOGIN module, passing all participants in chat :chatid
+                        var usersInChatObject = {'users': usersInChat};
+                        LoginManager.getFirebaseToken(usersInChatObject)
+                            .then(function (tokens) {
+                                // Send a notification to all users in chat, except the sender.
+                                console.log('messaggio da inviare' + JSON.stringify(messageToSend));
+                                FirebaseManager.sendMessage(tokens, notification.MESSAGE, message.text, messageToSend)
+                                    .then(function (response) {
+                                        console.log('Notification sent!');
+                                    })
+                                    .catch(function (error) {
+                                        console.log('Notification not sent: ' + error);
+                                    });
                             })
                             .catch(function (error) {
-                                console.log('Notification not sent!');
+                                console.log('Impossible to retrieve Firebase token for user ' + message.sender.id);
                             });
-                    })
-                    .catch(function (error) {
-                        console.log('Impossible to retrieve Firebase token for user ' + message.sender.id);
-                    });
+                            })
+                            .catch(function (error) {
+                                console.log('Error saving message!');
+                                res.sendStatus(error);
+                            });
             }
         })
         .catch((error) => {

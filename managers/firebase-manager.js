@@ -36,7 +36,7 @@ FirebaseManager.prototype.sendMessage = function (tokens, payload) {
     }
 };
 FirebaseManager.prototype.sendMessage = function (tokens, notificationTitle, notificationBody, customData) {
-
+    console.log("\n" + JSON.stringify(customData));
     if (status === FirebaseManager.STATUS_CONNECTED) {
         return this.getFirebaseApp().messaging().sendToDevice(tokens, {
             notification: {

@@ -138,6 +138,7 @@ router.post('/chat/:chatid/message', upload.single('file'), function(req, res) {
                     saveMessage(message, chatid, req, res);
                 })
                 .catch((error) => {
+                    console.log('No attachment');
                     res.sendStatus(errorHandler.INTERNAL_SERVER_ERROR);
                 });
             } else { //No attachment
@@ -183,7 +184,9 @@ function saveMessage(message, chatid, req, res) {
                             "text":message["text"],
                             "type":message["type"],
                             "url":"",
-                            "timestamp":message["timestamp"]
+                            "timestamp":message["timestamp"],
+                            "contentAvailable": true
+
                         };
                         if (message["url"]) {
                             messageToSend["url"] = message["url"];
@@ -197,6 +200,7 @@ function saveMessage(message, chatid, req, res) {
                                 console.log('messaggio da inviare' + JSON.stringify(messageToSend));
                                 FirebaseManager.sendMessage(tokens, notification.MESSAGE, message.text, messageToSend)
                                     .then(function (response) {
+                                        console.log(response);
                                         console.log('Notification sent!');
                                     })
                                     .catch(function (error) {

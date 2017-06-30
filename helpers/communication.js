@@ -11,7 +11,7 @@ function getFirebaseToken(users, callback) {
     };
     var p = new Promise(function(resolve, reject) {
         //MOCK
-        resolve([ 'fVQl8MtXQqQ:APA91bF_rhXdPg1TCguxdsvYw2ESGThVpgcnF7G4Z2gYbYNobQ8gVN7WzSORr0eYkOOcwwZaaPkUMclnkJKNwTv6lpclpbDrvO_iIu3jbRYkRex23j-ek3Rells_-EgYMlf7DORiPjtg' ]);
+        resolve([ 'dY4QOPKviEY:APA91bFYP21OBi9OHaNbju_hEXX-zkFj20VvTqk2hzKnefO6ZX3qr8wgRYDjko5ndXkR0rGwbc3-Njm9CvMqVA20ogV0tj_jVwer3pixxTgfi2RjhzVY9GWdcQ2Njay4ZDGt3aPIXv1C','fVQl8MtXQqQ:APA91bF_rhXdPg1TCguxdsvYw2ESGThVpgcnF7G4Z2gYbYNobQ8gVN7WzSORr0eYkOOcwwZaaPkUMclnkJKNwTv6lpclpbDrvO_iIu3jbRYkRex23j-ek3Rells_-EgYMlf7DORiPjtg' ]);
         /*request.post(options, function(error, response, body){
             if (error) {
                 reject(error);

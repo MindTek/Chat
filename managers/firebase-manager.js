@@ -36,21 +36,20 @@ FirebaseManager.prototype.sendMessage = function (tokens, payload) {
     }
 };
 FirebaseManager.prototype.sendMessage = function (tokens, notificationTitle, notificationBody, customData) {
-    console.log("\n" + JSON.stringify(customData));
     let notificationValue = {
                 notification: {
                     title: notificationTitle,
                     body: notificationBody
-                }
+                },
+                data: customData
             };
-    let dataValue = customData;
     let options = {
         priority: "high",
         timeToLive: 60 * 60 * 24,
         contentAvailable: true
     };
     if (status === FirebaseManager.STATUS_CONNECTED) {
-        return this.getFirebaseApp().messaging().sendToDevice(tokens, notificationValue, dataValue, options);
+        return this.getFirebaseApp().messaging().sendToDevice(tokens, notificationValue, options);
     } else {
         var error = this.getError();
         if (error) {
@@ -154,12 +153,9 @@ FirebaseManager.prototype.updateUser = function (userid, user) {
             // Check that user exists
             userRef.child(userid).once('value')
                 .then ((snapshot) => {
-                    console.log("A");
                     if (snapshot.val()) {
-                        console.log("B");
                         userRef.child(userid).update(user)
                             .then(function() {
-                                console.log("0");
                                 resolve(httpCode.OK);
                             })
                             .catch(function(error) {
@@ -167,12 +163,10 @@ FirebaseManager.prototype.updateUser = function (userid, user) {
                                 reject(errorHandler.INTERNAL_SERVER_ERROR);
                             });
                     } else {
-                        console.log("C");
                         reject(errorHandler.NOT_FOUND);
                     }
                 })
                 .catch(function() {
-                    console.log("2");
                     reject(errorHandler.INTERNAL_SERVER_ERROR);
                 });
         } else {

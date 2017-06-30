@@ -184,9 +184,7 @@ function saveMessage(message, chatid, req, res) {
                             "text":message["text"],
                             "type":message["type"],
                             "url":"",
-                            "timestamp":message["timestamp"],
-                            "contentAvailable": true
-
+                            "timestamp":message["timestamp"]
                         };
                         if (message["url"]) {
                             messageToSend["url"] = message["url"];

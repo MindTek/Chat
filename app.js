@@ -13,7 +13,7 @@ const app = express();
 /* ROUTING INIT */
 // Create a middleware to verify authentication
 var authentication = function (req, res, next) {
-    LoginManager.authenticate(req.header('Authorization'))
+    LoginManager.authenticate(req.header('X-Token'))
         .then(function(response) {
             req.auth = response.auth;
             req.sender = response.id;

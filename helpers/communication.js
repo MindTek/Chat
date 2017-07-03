@@ -5,24 +5,34 @@ const fs = require('fs');
 
 function getFirebaseToken(users, callback) {
     var options = {
-        url: SERVER + '/hook/user/firebasetoken',
+        url: SERVER + '/hook/firebasetoken',
         body: users,
         json: true
     };
+    console.log('users: ' + JSON.stringify(users));
     var p = new Promise(function(resolve, reject) {
         //MOCK
-        resolve([ 'dY4QOPKviEY:APA91bFYP21OBi9OHaNbju_hEXX-zkFj20VvTqk2hzKnefO6ZX3qr8wgRYDjko5ndXkR0rGwbc3-Njm9CvMqVA20ogV0tj_jVwer3pixxTgfi2RjhzVY9GWdcQ2Njay4ZDGt3aPIXv1C','fVQl8MtXQqQ:APA91bF_rhXdPg1TCguxdsvYw2ESGThVpgcnF7G4Z2gYbYNobQ8gVN7WzSORr0eYkOOcwwZaaPkUMclnkJKNwTv6lpclpbDrvO_iIu3jbRYkRex23j-ek3Rells_-EgYMlf7DORiPjtg' ]);
-        /*request.post(options, function(error, response, body){
+        //resolve([ 'dY4QOPKviEY:APA91bFYP21OBi9OHaNbju_hEXX-zkFj20VvTqk2hzKnefO6ZX3qr8wgRYDjko5ndXkR0rGwbc3-Njm9CvMqVA20ogV0tj_jVwer3pixxTgfi2RjhzVY9GWdcQ2Njay4ZDGt3aPIXv1C','fVQl8MtXQqQ:APA91bF_rhXdPg1TCguxdsvYw2ESGThVpgcnF7G4Z2gYbYNobQ8gVN7WzSORr0eYkOOcwwZaaPkUMclnkJKNwTv6lpclpbDrvO_iIu3jbRYkRex23j-ek3Rells_-EgYMlf7DORiPjtg' ]);
+        request.post(options, function(error, response, body){
+
             if (error) {
                 reject(error);
             } else {
+                let result = (response.statusCode == 200) ? true : false;
+                let bodyJson = response.body;
                 let resultArray = new Array();
-                body.forEach(function(u) {
-                    resultArray.push(u['firebase_token']);
-                });
-                resolve(resultArray);
+                if (result && bodyJson.status) {
+                    let tokens = bodyJson['user_tokens'];
+                    for (var i = 0; i < tokens.length; i++) {
+                        let token = tokens[i];
+                        resultArray.push(token['firebasetoken']);
+                    }
+                    resolve(resultArray);
+                } else {
+                    reject();
+                }
             }
-        });*/
+        });
     });
     return p;
 }
@@ -32,22 +42,31 @@ function getFirebaseToken(users, callback) {
  */
 function authenticate(token) {
     var options = {
-        url: SERVER + '/hook/user/authorization',
+        url: SERVER + '/hook/authorization',
         headers: {
-            'Authorization': token
+            'X-Token': token
         }
     };
+    console.log(token);
     var p = new Promise(function(resolve, reject) {
         //MOCK
-        resolve({'auth':true, 'id': 2});
+        //resolve({'auth':true, 'id': 2});
         request.get(options, function(error, response, body){
-            /*if (error) {
-                reject();
+            console.log(response.statusCode);
+            let result = (response.statusCode == 200) ? true : false;
+            let bodyJson = response.body;
+            let resultArray = new Array();
+            if (result) {
+                let status = bodyJson["status"];
+                let userId = bodyJson["user_id"];
+                let toReturn = {
+                    "auth": response.statusCode,
+                    "user_id": userId
+                }
+                resolve(toReturn);
             } else {
-                let result = (response.statusCode == 200) ? true : false;
-                let userid = (response.body['userId']);
-                resolve({'auth':result, 'id': userid});
-            }*/
+                reject();
+            }
         });
     });
     return p;

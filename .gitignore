@@ -63,3 +63,4 @@ typings/
 
 # Configurations
 config/serviceAccountKey.json
+.DS_Store

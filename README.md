@@ -101,7 +101,7 @@ Get last message of a chat.
 Get all participants of a chat.
 
 
-### Login
+## Login
 These two requests does not require authentication since they are made on LM, which is considered safe.
 #### Create a user
 > POST /users

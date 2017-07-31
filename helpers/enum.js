@@ -1,9 +1,10 @@
 var notification = {
-    ADDED : "You were added to a group.",
-    MESSAGE : "New message",
-    NEWUSERADDED : "A new user has been added to this chat",
-    USERREMOVED: "An user has been removed",
-    CHATUPDATED: "Chat has been updated"
+    ADDED : "Sei stato aggiunto a una chat.",
+    MESSAGE : "Hai ricevuto un nuovo messaggio.",
+    NEWUSERADDED : "Un utente è stato aggiunto alla chat.",
+    USERREMOVED: "Un utente ha abbandonato la chat.",
+    CHATUPDATED: "La chat è stata modificata.",
+    CHATCREATED: "La chat è stata creata."
 };
 
 var httpCode = {

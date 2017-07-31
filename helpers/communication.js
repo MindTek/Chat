@@ -1,20 +1,22 @@
 const logger = require('winston');
 const request = require('request');
-const SERVER = "http://development.bikeapp.mindtek.it/api";
+const env = require('./../config/env.json');
 const fs = require('fs');
+
+const ATTACHMENT_SERVER = env.ATTACHMENT_SERVER;
+const AUTH_SERVER = env.LOGIN_SERVER;
 
 function getFirebaseToken(users, callback) {
     var options = {
-        url: SERVER + '/hook/firebasetoken',
+        url: AUTH_SERVER + '/hook/firebasetoken',
         body: users,
         json: true
     };
-    console.log('users: ' + JSON.stringify(users));
+    logger.info('users: ' + JSON.stringify(users));
     var p = new Promise(function(resolve, reject) {
         //MOCK
-        //resolve([ 'dY4QOPKviEY:APA91bFYP21OBi9OHaNbju_hEXX-zkFj20VvTqk2hzKnefO6ZX3qr8wgRYDjko5ndXkR0rGwbc3-Njm9CvMqVA20ogV0tj_jVwer3pixxTgfi2RjhzVY9GWdcQ2Njay4ZDGt3aPIXv1C','fVQl8MtXQqQ:APA91bF_rhXdPg1TCguxdsvYw2ESGThVpgcnF7G4Z2gYbYNobQ8gVN7WzSORr0eYkOOcwwZaaPkUMclnkJKNwTv6lpclpbDrvO_iIu3jbRYkRex23j-ek3Rells_-EgYMlf7DORiPjtg' ]);
+        //resolve([ 'token' ]);
         request.post(options, function(error, response, body){
-
             if (error) {
                 reject(error);
             } else {
@@ -42,19 +44,17 @@ function getFirebaseToken(users, callback) {
  */
 function authenticate(token) {
     var options = {
-        url: SERVER + '/hook/authorization',
+        url: AUTH_SERVER + '/hook/authorization',
         headers: {
             'X-Token': token
         }
     };
-    console.log(token);
     var p = new Promise(function(resolve, reject) {
         //MOCK
-        //resolve({'auth':true, 'id': 2});
-        request.get(options, function(error, response, body){
-            console.log(response.statusCode);
+        resolve({'auth':true, 'id': 1});
+        /*request.get(options, function(error, response, body){
             let result = (response.statusCode == 200) ? true : false;
-            let bodyJson = response.body;
+            let bodyJson = JSON.parse(response.body);
             let resultArray = new Array();
             if (result) {
                 let status = bodyJson["status"];
@@ -62,12 +62,13 @@ function authenticate(token) {
                 let toReturn = {
                     "auth": response.statusCode,
                     "user_id": userId
-                }
+                };
+                logger.info(Date() + ' - Auth token: ' + token +' - User: ' + userId);
                 resolve(toReturn);
             } else {
                 reject();
             }
-        });
+        });*/
     });
     return p;
 }
@@ -78,7 +79,7 @@ function authenticate(token) {
 function postFile(file) {
     var boundaryKey = Math.random().toString(16);
     var options = {
-        url: SERVER + '/hook/upload_image',
+        url: ATTACHMENT_SERVER,
         headers: {
             'Content-Type': 'multipart/form-data; boundary=__X_PAW_BOUNDARY__'
         },
@@ -94,7 +95,7 @@ function postFile(file) {
                 let result = (response.statusCode == 200) ? true : false;
                 let bodyJson = JSON.parse(response.body);
                 if (result && bodyJson.status) {
-                    let imageUrl = (bodyJson['image_url']);
+                    let fileUrl = (bodyJson['url']);
                     fs.unlink(__dirname + '/../' + file.path);
                     resolve(imageUrl);
                 } else {

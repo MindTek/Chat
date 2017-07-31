@@ -1,0 +1,607 @@
+{
+	"_type": "export",
+	"__export_format": 3,
+	"__export_date": "2017-07-31T15:27:52.342Z",
+	"__export_source": "insomnia.desktop.app:v5.6.3",
+	"resources": [
+		{
+			"_id": "wrk_009ca140dd174c1da3af60555bd0d9dc",
+			"parentId": null,
+			"modified": 1497877948377,
+			"created": 1495698363048,
+			"name": "Modulo chat",
+			"description": "",
+			"certificates": [],
+			"_type": "workspace"
+		},
+		{
+			"_id": "env_3957a28783a041b5b4a57e4b76bb4495",
+			"parentId": "wrk_009ca140dd174c1da3af60555bd0d9dc",
+			"modified": 1497877948375,
+			"created": 1495698394254,
+			"name": "Base Environment",
+			"data": {},
+			"color": null,
+			"_type": "environment"
+		},
+		{
+			"_id": "jar_f3183a73e75f45c3a09e096b5004422c",
+			"parentId": "wrk_009ca140dd174c1da3af60555bd0d9dc",
+			"modified": 1497877948373,
+			"created": 1495698456885,
+			"name": "Default Jar",
+			"cookies": [],
+			"_type": "cookie_jar"
+		},
+		{
+			"_id": "req_2e8b3deca890481fb880bc5e92658726",
+			"parentId": "wrk_009ca140dd174c1da3af60555bd0d9dc",
+			"modified": 1501514806398,
+			"created": 1495698394090,
+			"url": "localhost:8080/api/chat",
+			"name": "Create chat",
+			"description": "",
+			"method": "POST",
+			"body": {
+				"mimeType": "application/json",
+				"text": "{\n\t\"img\":\"http://www.giocasoftware.it/img/mindtek.png\",\n\t\"name\":\"BeSecond\",\n\t\"type\":\"GROUP\"\n}"
+			},
+			"parameters": [],
+			"headers": [
+				{
+					"name": "Content-Type",
+					"value": "application/json",
+					"id": "pair_05b7ccef807a4b38abfee3ee64bdd2e2"
+				},
+				{
+					"name": "X-Token",
+					"value": "",
+					"id": "pair_e1087a25e8e04b56a4bdbaea149c7cd6"
+				}
+			],
+			"authentication": {},
+			"metaSortKey": -1495698394090,
+			"settingStoreCookies": true,
+			"settingSendCookies": true,
+			"settingDisableRenderRequestBody": false,
+			"settingEncodeUrl": true,
+			"_type": "request"
+		},
+		{
+			"_id": "req_3becfe110e2e4714abee2eb8e158d33a",
+			"parentId": "wrk_009ca140dd174c1da3af60555bd0d9dc",
+			"modified": 1501514821543,
+			"created": 1495698517018,
+			"url": "localhost:8080/api/chat/-KoBg_4pKoETSaQycdlD",
+			"name": "Update chat",
+			"description": "",
+			"method": "PUT",
+			"body": {
+				"mimeType": "application/json",
+				"text": "{\n\t\"name\":\"VIVA LA VIVA\",\n\t\"img\":\"http://img.url\"\n\n}"
+			},
+			"parameters": [],
+			"headers": [
+				{
+					"name": "Content-Type",
+					"value": "application/json",
+					"id": "pair_46755f870b484477b6fc8005ece7e0dd"
+				},
+				{
+					"name": "X-Token",
+					"value": "",
+					"id": "pair_5de1ccb24b034141bd83ffe62e4be27a"
+				}
+			],
+			"authentication": {},
+			"metaSortKey": -1495698517018,
+			"settingStoreCookies": true,
+			"settingSendCookies": true,
+			"settingDisableRenderRequestBody": false,
+			"settingEncodeUrl": true,
+			"_type": "request"
+		},
+		{
+			"_id": "req_806fe10802d84d34ad32726dc0dbb924",
+			"parentId": "wrk_009ca140dd174c1da3af60555bd0d9dc",
+			"modified": 1501514792162,
+			"created": 1495707005860,
+			"url": "localhost:8080/api/chat/-Kq39rY90GmCA_-L9uxV/message",
+			"name": "Post message",
+			"description": "",
+			"method": "POST",
+			"body": {
+				"mimeType": "multipart/form-data",
+				"params": [
+					{
+						"name": "message",
+						"value": "{\n    \"chat_id\": \"-Kq39rY90GmCA_-L9uxV\",\n    \"sender\": {\n        \"id\": \"241\",\n        \"name\": \"Primo\"\n    },\n    \"text\": \"Welcome to this chat (parte 4)!\",\n    \"type\": \"TEXT\"\n}",
+						"id": "pair_dadd4de55df04d6d890f0caeb9ed5007",
+						"type": "text",
+						"multiline": "text/plain"
+					}
+				]
+			},
+			"parameters": [],
+			"headers": [
+				{
+					"name": "Content-Type",
+					"value": "multipart/form-data",
+					"id": "pair_b597803c02454fdd8a1d6aba8c988945"
+				},
+				{
+					"name": "X-Token",
+					"value": "",
+					"id": "pair_1bf8ce0f6ca448f7b3934b37ee1df212"
+				},
+				{
+					"name": "",
+					"value": "",
+					"id": "pair_2694b9e747764062ab1bdbfb1474e32d"
+				}
+			],
+			"authentication": {},
+			"metaSortKey": -1495707005860,
+			"settingStoreCookies": true,
+			"settingSendCookies": true,
+			"settingDisableRenderRequestBody": false,
+			"settingEncodeUrl": true,
+			"_type": "request"
+		},
+		{
+			"_id": "req_5b4faed9c7864f5987fc689647960b67",
+			"parentId": "wrk_009ca140dd174c1da3af60555bd0d9dc",
+			"modified": 1501514794166,
+			"created": 1495789627692,
+			"url": "localhost:8080/api/chat/-KpQI_Wu9ozsQ0zsGTeH/users/115/remove",
+			"name": "Leave chat",
+			"description": "",
+			"method": "PUT",
+			"body": {
+				"mimeType": "application/json",
+				"text": ""
+			},
+			"parameters": [],
+			"headers": [
+				{
+					"name": "Content-Type",
+					"value": "application/json",
+					"id": "pair_86c8c2d310d844b59a10dc8ea7db1bad"
+				},
+				{
+					"name": "X-Token",
+					"value": "",
+					"id": "pair_e19ecb85589c485f9b7d41f93ca252bf"
+				}
+			],
+			"authentication": {},
+			"metaSortKey": -1495704353096.875,
+			"settingStoreCookies": true,
+			"settingSendCookies": true,
+			"settingDisableRenderRequestBody": false,
+			"settingEncodeUrl": true,
+			"_type": "request"
+		},
+		{
+			"_id": "req_36705c8ff2964fd8825df76aa15f18aa",
+			"parentId": "wrk_009ca140dd174c1da3af60555bd0d9dc",
+			"modified": 1501514784063,
+			"created": 1495811171747,
+			"url": "localhost:8080/api/chat/all/user/12",
+			"name": "List of chats",
+			"description": "",
+			"method": "GET",
+			"body": {},
+			"parameters": [],
+			"headers": [
+				{
+					"name": "X-Token",
+					"value": "",
+					"id": "pair_b139acd110894a7da1c75e1072c4e2c4"
+				}
+			],
+			"authentication": {},
+			"metaSortKey": -1495811171747,
+			"settingStoreCookies": true,
+			"settingSendCookies": true,
+			"settingDisableRenderRequestBody": false,
+			"settingEncodeUrl": true,
+			"_type": "request"
+		},
+		{
+			"_id": "req_c32699ccf5e345a8b3ae0e3be1d5ddb0",
+			"parentId": "wrk_009ca140dd174c1da3af60555bd0d9dc",
+			"modified": 1501514781138,
+			"created": 1495811297460,
+			"url": "localhost:8080/api/chat/-KpEhEZTHbWNRQKzcR3V",
+			"name": "Chat details",
+			"description": "",
+			"method": "GET",
+			"body": {},
+			"parameters": [],
+			"headers": [
+				{
+					"name": "X-Token",
+					"value": "",
+					"id": "pair_3a39bf9534824ee784fcada41ad38bc7"
+				}
+			],
+			"authentication": {},
+			"metaSortKey": -1495811297460,
+			"settingStoreCookies": true,
+			"settingSendCookies": true,
+			"settingDisableRenderRequestBody": false,
+			"settingEncodeUrl": true,
+			"_type": "request"
+		},
+		{
+			"_id": "req_c259f5b39ae343af82d3557ed3724a1c",
+			"parentId": "wrk_009ca140dd174c1da3af60555bd0d9dc",
+			"modified": 1501514767423,
+			"created": 1495811393930,
+			"url": "localhost:8080/api/chat/-Kq39rY90GmCA_-L9uxV/message/all",
+			"name": "Chat messages",
+			"description": "",
+			"method": "GET",
+			"body": {},
+			"parameters": [],
+			"headers": [
+				{
+					"name": "X-Token",
+					"value": "",
+					"id": "pair_46e33e7b167944bd998c230c83949856"
+				},
+				{
+					"name": "",
+					"value": "",
+					"id": "pair_a5de5c70f8ad4267bf5456d546df3a9c"
+				}
+			],
+			"authentication": {},
+			"metaSortKey": -1495811393930,
+			"settingStoreCookies": true,
+			"settingSendCookies": true,
+			"settingDisableRenderRequestBody": false,
+			"settingEncodeUrl": true,
+			"_type": "request"
+		},
+		{
+			"_id": "req_cde7658de205443e8609d209d6adf7ac",
+			"parentId": "wrk_009ca140dd174c1da3af60555bd0d9dc",
+			"modified": 1501514772993,
+			"created": 1495811435016,
+			"url": "localhost:8080/api/chat/-Km6sYghx3mlCbp4ivJCaaa/user/all",
+			"name": "Participants in a chat",
+			"description": "",
+			"method": "GET",
+			"body": {},
+			"parameters": [],
+			"headers": [
+				{
+					"name": "X-Token",
+					"value": "",
+					"id": "pair_a0b757578b4841108068e2c29a6a810d"
+				}
+			],
+			"authentication": {},
+			"metaSortKey": -1495811435017,
+			"settingStoreCookies": true,
+			"settingSendCookies": true,
+			"settingDisableRenderRequestBody": false,
+			"settingEncodeUrl": true,
+			"_type": "request"
+		},
+		{
+			"_id": "req_6c4d6b02c38e4ef49a152e8127398e00",
+			"parentId": "wrk_009ca140dd174c1da3af60555bd0d9dc",
+			"modified": 1501514777762,
+			"created": 1495811497184,
+			"url": "localhost:8080/api/chat/-KnExoikUcE3VWic514N/lastmessage",
+			"name": "Latest message of chat",
+			"description": "",
+			"method": "GET",
+			"body": {},
+			"parameters": [],
+			"headers": [
+				{
+					"name": "X-Token",
+					"value": "",
+					"id": "pair_54695c06bbc64a0398d28420588da6ad"
+				}
+			],
+			"authentication": {},
+			"metaSortKey": -1495811414473.5,
+			"settingStoreCookies": true,
+			"settingSendCookies": true,
+			"settingDisableRenderRequestBody": false,
+			"settingEncodeUrl": true,
+			"_type": "request"
+		},
+		{
+			"_id": "req_739399854d3544c39318c42ffb77b47c",
+			"parentId": "wrk_009ca140dd174c1da3af60555bd0d9dc",
+			"modified": 1501514824478,
+			"created": 1495812560956,
+			"url": "localhost:8080/api/chat/-Kq2dl3AMSzkKcs0hjMK",
+			"name": "Delete chat",
+			"description": "",
+			"method": "DELETE",
+			"body": {},
+			"parameters": [],
+			"headers": [
+				{
+					"name": "X-Token",
+					"value": "",
+					"id": "pair_6f32eb702f6b413c8763133ffd2ce028"
+				}
+			],
+			"authentication": {},
+			"metaSortKey": -1495699578123.25,
+			"settingStoreCookies": true,
+			"settingSendCookies": true,
+			"settingDisableRenderRequestBody": false,
+			"settingEncodeUrl": true,
+			"_type": "request"
+		},
+		{
+			"_id": "req_565c162e71af4f5ca4d89de0fef42f8e",
+			"parentId": "wrk_009ca140dd174c1da3af60555bd0d9dc",
+			"modified": 1501514832573,
+			"created": 1496065458363,
+			"url": "localhost:8080/api/chat/-KoLnYXyK2xXrRDVskJX/users/add",
+			"name": "Join chat",
+			"description": "",
+			"method": "PUT",
+			"body": {
+				"mimeType": "application/json",
+				"text": "{\n\t\"users\": [\n\t\t\t\"3\"\n\t\t]\n}"
+			},
+			"parameters": [],
+			"headers": [
+				{
+					"name": "Content-Type",
+					"value": "application/json",
+					"id": "pair_86c8c2d310d844b59a10dc8ea7db1bad"
+				},
+				{
+					"name": "X-Token",
+					"value": "",
+					"id": "pair_9be987aa66144b0f89bfddea2ea4fd91"
+				}
+			],
+			"authentication": {},
+			"metaSortKey": -1495700639228.5,
+			"settingStoreCookies": true,
+			"settingSendCookies": true,
+			"settingDisableRenderRequestBody": false,
+			"settingEncodeUrl": true,
+			"_type": "request"
+		},
+		{
+			"_id": "req_84429929893b41f1b017f811eae1faba",
+			"parentId": "wrk_009ca140dd174c1da3af60555bd0d9dc",
+			"modified": 1501513245348,
+			"created": 1496235752557,
+			"url": "localhost:8080/hook/users",
+			"name": "Create user",
+			"description": "",
+			"method": "POST",
+			"body": {
+				"mimeType": "application/json",
+				"text": "{\n\t\"id\": \"1\",\n\t\"full_name\": \"MAIN\",\n\t\"img\": \"http://url.img\"\n}"
+			},
+			"parameters": [],
+			"headers": [
+				{
+					"name": "Content-Type",
+					"value": "application/json",
+					"id": "pair_5400df249dc04c1a8d694b68e791e2bb"
+				}
+			],
+			"authentication": {},
+			"metaSortKey": -1495698394040,
+			"settingStoreCookies": true,
+			"settingSendCookies": true,
+			"settingDisableRenderRequestBody": false,
+			"settingEncodeUrl": true,
+			"_type": "request"
+		},
+		{
+			"_id": "req_a395e62a3ab345c7befd77c23847fecd",
+			"parentId": "wrk_009ca140dd174c1da3af60555bd0d9dc",
+			"modified": 1501514839666,
+			"created": 1496306134769,
+			"url": "localhost:8080/api/chat/-KnAGZ83RJChhCZxwGib/users/2/role",
+			"name": "Update role",
+			"description": "",
+			"method": "PUT",
+			"body": {
+				"mimeType": "application/json",
+				"text": ""
+			},
+			"parameters": [],
+			"headers": [
+				{
+					"name": "Content-Type",
+					"value": "application/json",
+					"id": "pair_e283c9a9adb44ca5ad2017636c43f7ce"
+				},
+				{
+					"name": "X-Token",
+					"value": "",
+					"id": "pair_7e5bbe1c7bf14419846931a1c6f74883"
+				}
+			],
+			"authentication": {},
+			"metaSortKey": -1495701700333.75,
+			"settingStoreCookies": true,
+			"settingSendCookies": true,
+			"settingDisableRenderRequestBody": false,
+			"settingEncodeUrl": true,
+			"_type": "request"
+		},
+		{
+			"_id": "req_95838e11bc904c2d90dc48e9e361445d",
+			"parentId": "wrk_009ca140dd174c1da3af60555bd0d9dc",
+			"modified": 1501514811536,
+			"created": 1496311132701,
+			"url": "localhost:8080/api/hook/authorization",
+			"name": "Authentication",
+			"description": "",
+			"method": "GET",
+			"body": {},
+			"parameters": [],
+			"headers": [
+				{
+					"name": "X-Token",
+					"value": "",
+					"id": "pair_23535f3530f24d70be23523cd54c5b65"
+				}
+			],
+			"authentication": {},
+			"metaSortKey": -1495698394015,
+			"settingStoreCookies": true,
+			"settingSendCookies": true,
+			"settingDisableRenderRequestBody": false,
+			"settingEncodeUrl": true,
+			"_type": "request"
+		},
+		{
+			"_id": "req_c721c1f4369d41cf85bda7ae649dc930",
+			"parentId": "wrk_009ca140dd174c1da3af60555bd0d9dc",
+			"modified": 1501514564473,
+			"created": 1497254358300,
+			"url": "localhost:8080/api",
+			"name": "Placeholder",
+			"description": "",
+			"method": "GET",
+			"body": {},
+			"parameters": [],
+			"headers": [],
+			"authentication": {},
+			"metaSortKey": -1495698393990,
+			"settingStoreCookies": true,
+			"settingSendCookies": true,
+			"settingDisableRenderRequestBody": false,
+			"settingEncodeUrl": true,
+			"_type": "request"
+		},
+		{
+			"_id": "req_7525ee6158824afb866193a167124e6a",
+			"parentId": "wrk_009ca140dd174c1da3af60555bd0d9dc",
+			"modified": 1501512921581,
+			"created": 1497273098425,
+			"url": "localhost:8080/hook/users/41",
+			"name": "Update user",
+			"description": "",
+			"method": "PUT",
+			"body": {
+				"mimeType": "application/json",
+				"text": "{\n\t\"full_name\": \"Androidino\",\n\t\"img\":\"http://image.com\"\n}"
+			},
+			"parameters": [],
+			"headers": [
+				{
+					"name": "Content-Type",
+					"value": "application/json",
+					"id": "pair_cc75b6a3aabe46dfa0bd4575f6319041"
+				}
+			],
+			"authentication": {},
+			"metaSortKey": -1495698394065,
+			"settingStoreCookies": true,
+			"settingSendCookies": true,
+			"settingDisableRenderRequestBody": false,
+			"settingEncodeUrl": true,
+			"_type": "request"
+		},
+		{
+			"_id": "req_e0f54f2bafa744c1bd6d644cb8ace4bf",
+			"parentId": "wrk_009ca140dd174c1da3af60555bd0d9dc",
+			"modified": 1501514789936,
+			"created": 1499164070416,
+			"url": "localhost:8080/api/chat/-KnExoikUcE3VWic514N/message",
+			"name": "Post message image",
+			"description": "",
+			"method": "POST",
+			"body": {
+				"mimeType": "multipart/form-data",
+				"params": [
+					{
+						"name": "message",
+						"value": "{\n    \"chat_id\": \"-KnExoikUcE3VWic514N\",\n    \"sender\": {\n        \"id\": \"1\",\n        \"name\": \"TESTINA!\"\n    },\n    \"text\": \"image\",\n    \"type\": \"IMAGE\"\n}",
+						"id": "pair_dadd4de55df04d6d890f0caeb9ed5007",
+						"type": "text",
+						"multiline": "text/plain"
+					},
+					{
+						"name": "file",
+						"value": "",
+						"id": "pair_e99389ee385a4a44ad8eb37900a3a525",
+						"type": "file",
+						"fileName": "/Users/matteo.danelli/Documents/Mindtek/BikeApp.ios/BikeApp/Assets/Media.xcassets/launch_screen.imageset/launch_screen.png"
+					}
+				]
+			},
+			"parameters": [],
+			"headers": [
+				{
+					"name": "Content-Type",
+					"value": "multipart/form-data",
+					"id": "pair_b597803c02454fdd8a1d6aba8c988945"
+				},
+				{
+					"name": "X-Token",
+					"value": "",
+					"id": "pair_1bf8ce0f6ca448f7b3934b37ee1df212"
+				},
+				{
+					"name": "",
+					"value": "",
+					"id": "pair_2694b9e747764062ab1bdbfb1474e32d"
+				}
+			],
+			"authentication": {},
+			"metaSortKey": -1495717333589,
+			"settingStoreCookies": true,
+			"settingSendCookies": true,
+			"settingDisableRenderRequestBody": false,
+			"settingEncodeUrl": true,
+			"_type": "request"
+		},
+		{
+			"_id": "req_ffcc7ff9c5bd4eb7b806e7fb69c3b611",
+			"parentId": "wrk_009ca140dd174c1da3af60555bd0d9dc",
+			"modified": 1501514796608,
+			"created": 1499171913389,
+			"url": "localhost:8080/api/chat/-KpFxs6bEwYCAMDMsb6o/users/addrole",
+			"name": "Join chat with role",
+			"description": "",
+			"method": "PUT",
+			"body": {
+				"mimeType": "application/json",
+				"text": "{\n\t\"users\": [{\n\t\t\"role\": \"ADMIN\",\n\t\t\"id\": \"115\"\n\t}]\n}"
+			},
+			"parameters": [],
+			"headers": [
+				{
+					"name": "Content-Type",
+					"value": "application/json",
+					"id": "pair_86c8c2d310d844b59a10dc8ea7db1bad"
+				},
+				{
+					"name": "X-Token",
+					"value": "",
+					"id": "pair_9be987aa66144b0f89bfddea2ea4fd91"
+				}
+			],
+			"authentication": {},
+			"metaSortKey": -1495701169781.125,
+			"settingStoreCookies": true,
+			"settingSendCookies": true,
+			"settingDisableRenderRequestBody": false,
+			"settingEncodeUrl": true,
+			"_type": "request"
+		}
+	]
+}
